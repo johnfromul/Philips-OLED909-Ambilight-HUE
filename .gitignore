@@ -1,0 +1,15 @@
+# Private device credentials and signing material
+**/jointspace-private.json
+**/api-*.json
+*.keystore
+*.jks
+*.pem
+*.key
+.env
+.env.*
+# Build products and local files
+build/
+__pycache__/
+*.pyc
+.DS_Store
+*.idsig

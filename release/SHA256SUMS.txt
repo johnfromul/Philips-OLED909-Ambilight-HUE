@@ -1,0 +1,2 @@
+d7eaac34c09683d29d45b1f5baeabdfc8e41d880aca5692017911950cccc1113  Ambilight-Hue-1.5.apk
+9194ab95eafa5ffd315785352336b08255a98ba13ca29e42e08f047f01006083  Ambilight-Hue-1.5-bundle.zip
