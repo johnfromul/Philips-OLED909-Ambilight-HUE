@@ -1,5 +1,13 @@
 # Technical notes and verification history
 
+## Tested TV software
+
+- TV: Philips **65OLED909**, Android 14.
+- Firmware: **`TPM231WW_R.201.100.146.220`**, build **`3000428`**.
+- Kernel: **`5.15.180-android14-11-00042-g766efc243647-dirty`**.
+
+These versions come from the saved TV diagnostics for the tested setup. Compatibility with other firmware or kernel versions has not been verified.
+
 ## Native integration
 
 The OLED909 firmware contains `org.droidtv.alhuewizard`, although the regular settings menu does not expose the original Ambilight + Hue integration. The launcher delegates to the installed service; it does not embed a replacement synchronization engine.

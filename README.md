@@ -21,7 +21,8 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | Component | Verified value |
 | --- | --- |
 | TV | Philips 65OLED909 |
-| Firmware | TPM231WW_R.201.100.146.220 / 3000428 |
+| Firmware | `TPM231WW_R.201.100.146.220` (build `3000428`) |
+| Kernel | `5.15.180-android14-11-00042-g766efc243647-dirty` |
 | Release | 1.5, Android versionCode 6 |
 | Android package | `local.tv.hue` |
 | Native service | `org.droidtv.alhuewizard/org.droidtv.ambihue.HueService` |
