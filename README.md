@@ -2,7 +2,7 @@
 
 Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original Philips Hue service already included in the TV firmware.
 
-[Download version 1.5](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.5) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
+[Download version 1.6](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.6) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
 
 ![Ambilight + Hue artwork](artwork/ambilight-hue-approved.png)
 
@@ -23,7 +23,7 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | TV | Philips 65OLED909 |
 | Firmware | `TPM231WW_R.201.100.146.220` (build `3000428`) |
 | Kernel | `5.15.180-android14-11-00042-g766efc243647-dirty` |
-| Release | 1.5, Android versionCode 6 |
+| Release | 1.6, Android versionCode 7 |
 | Android package | `local.tv.hue` |
 | Native service | `org.droidtv.alhuewizard/org.droidtv.ambihue.HueService` |
 | TV API | HTTPS, port 1926, JointSPACE v6 |
@@ -33,7 +33,7 @@ Other models and firmware versions have not been verified. White ambiance lights
 
 ## App controls
 
-The verified v1.5 APK has a **Czech interface**. This repository's documentation is in English.
+The v1.6 APK has a **Czech interface**. This repository's documentation is in English.
 
 | App label | Meaning |
 | --- | --- |
@@ -43,6 +43,14 @@ The verified v1.5 APK has a **Czech interface**. This repository's documentation
 | Přidání HUE světel do DB | Select compatible lights for the TV database |
 
 The success message confirms the saved native switch and service request. It does **not** independently confirm that lights are responding.
+
+## Fixed in 1.6
+
+The Android launcher now always connects to its own TV through **`127.0.0.1:1926`**. It ignores obsolete saved LAN/VPN addresses, so changing the TV IP no longer breaks the On/Off buttons. Certificate pinning, Digest authentication and native service notifications remain in place.
+
+A factory reset can invalidate old API credentials independently of the IP address. After a wipe, complete fresh **TV API pairing and provisioning** as described in the installation guide. Updating the APK preserves current private credentials; it cannot make invalid pre-wipe credentials valid again.
+
+An optional **root-only Magisk module** repairs remote confirmation in the original Philips wizard. It is separate from the launcher APK; see [Native wizard runtime fix](docs/WIZARD-RUNTIME.md). The launcher itself does not require root.
 
 ## Installation overview
 
@@ -63,7 +71,7 @@ See [the full installation guide](docs/INSTALL.md) for commands, recovery steps 
 
 ## Repository contents
 
-`src/` contains the four Java classes; `res/`, `artwork/` and `AndroidManifest.xml` contain the app assets and metadata. `tools/` provides pairing and provisioning helpers. `docs/` includes installation, build instructions, technical findings and historical ADB recovery notes. `release/` contains the original signed APK, an English distribution bundle and checksums.
+`src/` contains the four Java classes; `res/`, `artwork/` and `AndroidManifest.xml` contain the app assets and metadata. `tools/` provides pairing and provisioning helpers. `docs/` includes installation, build instructions, technical findings and historical ADB recovery notes. `release/` contains the signed APKs, English distribution bundles and checksums.
 
 No personal TV/Hue credentials, private signing keys, raw device logs, extracted Philips applications or decompiled vendor sources are included.
 

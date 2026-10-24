@@ -1,13 +1,17 @@
-# Ambilight + Hue 1.5
+# Ambilight + Hue 1.6 — local TV API connection
 
-Manual control of the Philips OLED909's built-in Ambilight + Hue integration.
+Fixes On/Off failing with EHOSTUNREACH / No route to host after a TV LAN or VPN address changes.
 
-This release saves the native Hue On/Off setting through paired JointSPACE v6, verifies it with GET and notifies the original Philips service. Turning synchronization off restores previous lighting using the native mechanism. Includes compatible color-light selection and access to native bulb position configuration.
+- The Android launcher always uses `127.0.0.1:1926`, including upgrades with obsolete saved host values.
+- Keeps certificate pinning, Digest authentication, native persistent On/Off and native light restoration.
+- Updated provisioning distinguishes the external TV address used by the computer from loopback used by the Android app.
+- Adds explicit certificate replacement for deliberate recovery and documents fresh API pairing after a factory reset.
+- Uses the original signing identity; install with `adb install -r` to preserve valid current launcher data.
 
-**Requirements:** the original Philips Hue service, a paired Hue Bridge with color lights, TV API provisioning, and the TV's own Ambilight switched on. Tested on Philips 65OLED909 firmware TPM231WW_R.201.100.146.220 / 3000428. App interface: Czech. Documentation: English.
+**After a wipe:** fresh TV API pairing is required if old credentials were invalidated. This is separate from Hue Bridge pairing. Turn on the TV's own Ambilight before enabling Hue synchronization.
 
-Download `Ambilight-Hue-1.5.apk` for installation or `Ambilight-Hue-1.5-bundle.zip` for the APK plus English documentation and pairing helpers. Verify downloads using `SHA256SUMS.txt`.
+**Optional rooted-TV component:** the separate Magisk ZIP repairs remote OK/Enter and completion in the native Philips wizard without replacing its APK. The launcher APK does not install that module and does not require root. See `docs/WIZARD-RUNTIME.md` for compatibility, installation and untested boot/wipe limitations.
 
-Existing installations signed by the same key can use `adb install -r`. A clean installation needs TV API pairing and provisioning. See `docs/INSTALL.md`.
+Tested TV: Philips 65OLED909, firmware TPM231WW_R.201.100.146.220 / build 3000428, kernel 5.15.180-android14-11-00042-g766efc243647-dirty. App UI: Czech; repository documentation: English.
 
-Automatic Off on standby is not included; On may resume after wake. Long-term API stability and a new full reboot after final verification were not tested. No private credentials or signing keys are included.
+Downloads include the signed APK, an English distribution bundle, a source archive, checksums and the optional Magisk module. No personal pairing credentials or private signing key are included. Version 1.5 remains available in its earlier release.

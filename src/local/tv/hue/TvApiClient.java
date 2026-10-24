@@ -18,8 +18,8 @@ final class TvApiClient {
  TvApiClient(Context context) throws Exception {
   SharedPreferences p=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
   user=p.getString("user","");password=p.getString("password","");pin=p.getString("certificate","");
-  host=p.getString("host","");
-  if(!host.matches("[0-9]{1,3}(\\.[0-9]{1,3}){3}"))throw new IOException("Síťová adresa TV API není nastavená.");
+  // The launcher controls the TV on which it runs; never depend on its LAN/VPN IP.
+  host="127.0.0.1";
   if(user.isEmpty()||password.isEmpty()||!pin.matches("[a-f0-9]{64}"))throw new IOException("Přístup k TV API není nastavený. Obnovte párování TV API podle návodu k APK.");
   SSLContext ssl=SSLContext.getInstance("TLS");
   ssl.init(null,new TrustManager[]{new X509TrustManager(){
@@ -54,7 +54,7 @@ final class TvApiClient {
   for(int attempt=0;attempt<3;attempt++) {
    android.util.Log.i("HueNativeAPI",method+" attempt="+attempt);
    byte[] bytes=body==null?new byte[0]:body.getBytes("UTF-8");
-   String headers=method+" "+uri+" HTTP/1.1\r\nHost: "+host+":1926\r\nAccept: application/json\r\nConnection: keep-alive\r\nUser-Agent: AmbilightHue/1.5\r\n";
+   String headers=method+" "+uri+" HTTP/1.1\r\nHost: "+host+":1926\r\nAccept: application/json\r\nConnection: keep-alive\r\nUser-Agent: AmbilightHue/1.6\r\n";
    if(challenge!=null)headers+="Authorization: "+digest(challenge,method,uri)+"\r\n";
    if(body!=null)headers+="Content-Type: application/json\r\nContent-Length: "+bytes.length+"\r\n";
    OutputStream output=session.getOutputStream();output.write((headers+"\r\n").getBytes("UTF-8"));output.write(bytes);output.flush();

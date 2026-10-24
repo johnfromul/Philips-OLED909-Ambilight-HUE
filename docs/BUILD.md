@@ -15,8 +15,14 @@ For a new signing identity, create your own keystore interactively using `keytoo
 
 The output is `build/ambilight-hue-launcher.apk`. The script creates its output directories, compiles Java and resources, adds DEX, aligns, signs and verifies the APK. Passwords are supplied to apksigner through environment references rather than literal command arguments.
 
-The published `release/Ambilight-Hue-1.5.apk` is the original verified binary and is not rebuilt during packaging. The Java sources, manifest and resources are copied from that release's source folder. The publication build script is portable and has no embedded signing credentials or developer-specific paths. Pairing tools accept configurable host/serial values; the TV helper uses `TV_HOST` and the provisioner requires explicit `--host` and `--serial`.
+The published `release/Ambilight-Hue-1.6.apk` is built from the current version 1.6 sources with the original local signing identity. The earlier 1.5 APK is retained as a historical artifact. No private keystore or signing password is distributed. Pairing tools use `TV_HOST` / `--host` for the computer-to-TV connection and always provision loopback for the app on the TV.
+
+Run the focused computer-side provisioning tests with:
+
+```sh
+python3 -m unittest discover -s tests -v
+```
 
 Your build will only update an installed app in place if it uses the same signing identity. The original private signing key is not published. Uninstalling to install a differently signed build removes launcher data and requires API provisioning again.
 
-The v1.5 interface remains Czech to preserve the verified release. English documentation does not imply an English-language APK.
+The v1.6 interface remains Czech. English documentation does not imply an English-language APK.

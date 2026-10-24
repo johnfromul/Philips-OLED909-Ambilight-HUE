@@ -8,6 +8,12 @@
 
 These versions come from the saved TV diagnostics for the tested setup. Compatibility with other firmware or kernel versions has not been verified.
 
+## Version 1.6 addressing and reset recovery
+
+The Android launcher connects to `https://127.0.0.1:1926/6/HueLamp/power`; the saved LAN/VPN host from 1.5 is ignored. The provisioning provider normalizes legacy host input to loopback and its status method reports the effective host. A computer-side provisioner still needs the TV's reachable LAN address to discover the initial certificate.
+
+On October 24, an old saved TV IP caused EHOSTUNREACH. After fixing that address, old pre-wipe API credentials returned HTTP 401. Fresh on-screen PIN pairing restored authorization. Off then passed POST and verification GET and the native active indicator became false. These are separate causes; the loopback fix does not bypass authentication or restore invalid credentials.
+
 ## Native integration
 
 The OLED909 firmware contains `org.droidtv.alhuewizard`, although the regular settings menu does not expose the original Ambilight + Hue integration. The launcher delegates to the installed service; it does not embed a replacement synchronization engine.

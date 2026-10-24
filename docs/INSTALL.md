@@ -12,7 +12,7 @@ export TV_SERIAL="$TV_HOST:5555"  # Replace with its current ADB connection port
 adb pair "$TV_HOST:PAIRING_PORT"  # Only if wireless debugging requires pairing
 adb connect "$TV_SERIAL"
 adb devices -l
-adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.5.apk
+adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.6.apk
 adb -s "$TV_SERIAL" shell am start -W -n local.tv.hue/.MainActivity
 ```
 
@@ -45,7 +45,29 @@ The Python pairing helper accepts the TV's self-signed HTTPS certificate. Provis
 
 The provisioning provider requires Android's `android.permission.DUMP`, available to ADB shell. Credentials are saved in private app storage and Android backup is disabled. Never publish the state file, provisioning command payloads or private app data.
 
-When the TV IP changes, run `provision_launcher.py` again with the new host and serial. A TV certificate change may require deliberate re-provisioning; the helper normally preserves an existing pin, so do not assume rerunning it replaces that pin.
+From version 1.6, the Android client always uses **`127.0.0.1:1926`**. A LAN/VPN IP change does not require re-provisioning. `TV_HOST` and `--host` above mean the reachable TV address from your computer; do not set them to your computer's loopback address. The provisioner discovers the TV certificate remotely when needed, but always stores `127.0.0.1` for the app running on the TV.
+
+The existing certificate pin is preserved unless you deliberately pass `--replace-certificate`. Only use this option after checking that the specified host is your TV and you intend to trust its changed certificate. The Android client's certificate validation is not disabled.
+
+## Recovery after a wipe
+
+A wipe can erase the launcher data and invalidate previously paired TV API credentials. Installing an old APK or re-provisioning an old state file does not restore valid authorization.
+
+1. Keep the previous private state file outside the repository if you need an archive; otherwise use `renew` deliberately to replace only your pairing helper's current state.
+2. Request fresh pairing and read the new short-lived PIN on the TV.
+3. Complete the grant and confirm that it reports `SUCCESS`.
+4. Provision those new credentials into the installed launcher.
+
+```sh
+python3 tools/tv_api.py renew
+python3 tools/tv_api.py grant NEW_PIN_FROM_TV
+python3 tools/tv_api.py get HueLamp/power
+python3 tools/provision_launcher.py --serial "$TV_SERIAL" --host "$TV_HOST"
+```
+
+If the certificate changed, use the explicit `--replace-certificate` option on the last command. Never share `jointspace-private.json`. Native Hue Bridge pairing and bulb positions may also need restoring after a wipe; they are separate from TV API pairing.
+
+For the optional root-only native wizard repair, see [WIZARD-RUNTIME.md](WIZARD-RUNTIME.md).
 
 ## Select and configure lights
 

@@ -1,0 +1,4 @@
+cc7589458c5e6d7a18a0bd6a4a9e515f39d77384e76fd99ce3974969322ee14e  Ambilight-Hue-1.6.apk
+ee2c628ab87e77225397464d5376c13d73935606de3ec7ae33928f696e2a007c  Ambilight-Hue-1.6-bundle.zip
+3b2f1402ed38612dce7908c9829f0f85ccf74d9676d8adc020eee265e591059e  Philips-OLED909-Ambilight-HUE-1.6-source.zip
+5e2420cb509723815a97ec7ef19600dc41660560f1a95bc426dc41240331ec52  Hue-Wizard-Runtime-Fix-1.1-Magisk-EN.zip

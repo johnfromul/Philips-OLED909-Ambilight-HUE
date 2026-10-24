@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6 — October 24, 2026
+
+- Always connect the Android launcher to the TV API over `127.0.0.1`, including upgrades with obsolete saved LAN/VPN addresses.
+- Provision local API routing independently of the computer-side address used for certificate discovery.
+- Preserve the existing certificate pin by default and offer explicit certificate replacement during recovery.
+- Document fresh TV API pairing after a wipe and the separate optional root-only native wizard runtime module.
+- Keep the original signing identity, native On/Off persistence and light restoration behavior.
+
+
 ## 1.5 — October 21, 2026
 
 - Persist native Hue On/Off using paired JointSPACE v6 `HueLamp/power` and verify with GET.
