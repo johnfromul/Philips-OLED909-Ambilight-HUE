@@ -18,9 +18,11 @@ On October 24, an old saved TV IP caused EHOSTUNREACH. After fixing that address
 
 The OLED909 firmware contains `org.droidtv.alhuewizard`, although the regular settings menu does not expose the original Ambilight + Hue integration. The launcher delegates to the installed service; it does not embed a replacement synchronization engine.
 
-Version 1.5 sends an authenticated Digest request to `https://TV_HOST:1926/6/HueLamp/power` with `{"power":"On"}` or `{"power":"Off"}`. A GET to the same endpoint verifies the saved value. The Android client uses one TLS 1.2 connection for challenge handling, POST and verification GET, and validates the leaf certificate's SHA-256 fingerprint.
+Version 1.8 sends an authenticated Digest request to `https://127.0.0.1:1926/6/HueLamp/power` with `{"power":"On"}` or `{"power":"Off"}`. Headers and body are sent in one socket write: separate writes reproduced HTTP 200 acknowledgements without applying the command on the tested TV. A GET verifies the saved value on a new TLS 1.2 connection with a fresh Digest challenge. Every connection validates the leaf certificate's SHA-256 fingerprint.
 
-It then starts the native service with `org.droidtv.ambihue.HueService.ALHUEON` or `org.droidtv.ambihue.HueService.ALHUEOFF`. On the tested TV, changing the saved setting alone did not wake the native service after restart. Service-only On failed while the saved setting remained Off.
+After an accepted write (or an ambiguous transient transport failure), it notifies the native service before verification with `org.droidtv.ambihue.HueService.ALHUEON` or `org.droidtv.ambihue.HueService.ALHUEOFF`. On the tested TV, changing the saved setting alone did not wake the native service after restart. Service-only On failed while the saved setting remained Off.
+
+The recovery sequence permits at most two explicit state writes, with up to two fresh-session verification reads per write. Authentication, certificate and protocol failures are not treated as transient errors. A failed verification cannot skip the initial native intent. See [diagnostic details](DIAGNOSTICS.md).
 
 Native power corresponds to ITvSettingsManager ID 120 / ACFG 16385. The runtime indicator is `odm.tpv.sys.HueIsActive`. The native status activity is `org.droidtv.alhuewizard/org.droidtv.ambihue.AmbiHueDialogActivity`.
 

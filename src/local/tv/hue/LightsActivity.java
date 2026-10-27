@@ -27,6 +27,8 @@ public class LightsActivity extends Activity {
  private final ArrayList<Button> controls=new ArrayList<>();
  private Map<Integer,ContentValues> initial;
  private SharedPreferences prefs;
+ private final ThreadLocal<String> diagnosticId=ThreadLocal.withInitial(Diagnostics::id);
+ private String discoveryId="discovery";
  private LinearLayout panel;
  private EditText hostInput;
  private TextView status;
@@ -37,7 +39,7 @@ public class LightsActivity extends Activity {
  private interface Task {void run() throws Exception;}
  private static class HueError extends IOException {final int type;HueError(int type,String text){super(text);this.type=type;}}
  @Override public void onCreate(Bundle state) {
-  super.onCreate(state); prefs=getSharedPreferences("hue_bridge",MODE_PRIVATE);
+  super.onCreate(state);Diagnostics.init(this);Diagnostics.event("lifecycle","lights.create",""); prefs=getSharedPreferences("hue_bridge",MODE_PRIVATE);
   connectionScreen();
   if(!prefs.getString("token","").isEmpty())load(false);
  }
@@ -90,15 +92,19 @@ public class LightsActivity extends Activity {
  private Object request(String host,String path,String body) throws Exception {
   if(!host.matches("[0-9]{1,3}(\\.[0-9]{1,3}){3}"))throw new IOException("Zadejte IPv4 adresu můstku, například 192.168.2.11.");
   HttpURLConnection c=(HttpURLConnection)new URL("http://"+host+path).openConnection();
+  String id=diagnosticId.get();long began=android.os.SystemClock.elapsedRealtime();
+  String kind=path.equals("/api/config")?"config":path.endsWith("/lights")?"lights":"pair";
+  Diagnostics.event(id,"bridge.request.begin","kind="+kind+" method="+(body==null?"GET":"POST"));
   c.setConnectTimeout(6000);c.setReadTimeout(10000);c.setInstanceFollowRedirects(false);
   try {
    if(body!=null){c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json");try(OutputStream out=c.getOutputStream()){out.write(body.getBytes("UTF-8"));}}
-   if(c.getResponseCode()!=200)throw new IOException("Můstek odpověděl HTTP "+c.getResponseCode()+".");
+   int http=c.getResponseCode();Diagnostics.event(id,"bridge.response","http="+http+" duration_ms="+(android.os.SystemClock.elapsedRealtime()-began));
+   if(http!=200)throw new IOException("Můstek odpověděl HTTP "+http+".");
    ByteArrayOutputStream out=new ByteArrayOutputStream();try(InputStream in=c.getInputStream()){byte[] buf=new byte[4096];int n;while((n=in.read(buf))!=-1){out.write(buf,0,n);if(out.size()>2097152)throw new IOException("Příliš velká odpověď můstku.");}}
    Object data=new JSONTokener(out.toString("UTF-8")).nextValue();
-   if(data instanceof JSONArray){JSONObject first=((JSONArray)data).optJSONObject(0);JSONObject error=first==null?null:first.optJSONObject("error");if(error!=null){int type=error.optInt("type");if(type==101)throw new HueError(type,"Stiskněte tlačítko na Hue můstku a zkuste Spárovat znovu.");if(type==1)throw new HueError(type,"Přístup vypršel. Stiskněte tlačítko můstku a použijte Spárovat.");throw new HueError(type,"Můstek odmítl požadavek (chyba "+type+").");}}
+   if(data instanceof JSONArray){JSONObject first=((JSONArray)data).optJSONObject(0);JSONObject error=first==null?null:first.optJSONObject("error");if(error!=null){int type=error.optInt("type");Diagnostics.event(id,"bridge.api.error","type="+type);if(type==101)throw new HueError(type,"Stiskněte tlačítko na Hue můstku a zkuste Spárovat znovu.");if(type==1)throw new HueError(type,"Přístup vypršel. Stiskněte tlačítko můstku a použijte Spárovat.");throw new HueError(type,"Můstek odmítl požadavek (chyba "+type+").");}}
    return data;
-  } finally {c.disconnect();}
+  }catch(Exception e){Diagnostics.error(id,"bridge.request.error",e);throw e;}finally {c.disconnect();Diagnostics.event(id,"bridge.request.end","duration_ms="+(android.os.SystemClock.elapsedRealtime()-began));}
  }
  private void checkBridge(String candidate,String expected) throws Exception {
   Object obj=request(candidate,"/api/config",null);
@@ -111,8 +117,9 @@ public class LightsActivity extends Activity {
  private void task(String message,Task work) {
   if(busy)return;busy=true;for(Button b:controls)b.setEnabled(false);if(hostInput!=null)hostInput.setEnabled(false);status.setText(message);
   worker.execute(() -> {
-   try {work.run();}catch(Exception e){ui(() -> status.setText(e.getMessage()==null?"Operace se nezdařila.":e.getMessage()));}
-   finally {ui(() -> {busy=false;for(Button b:controls)b.setEnabled(true);if(hostInput!=null)hostInput.setEnabled(true);});}
+   String id=Diagnostics.id();diagnosticId.set(id);Diagnostics.event(id,"lights.task.begin","");Diagnostics.network(this,id);
+   try {work.run();Diagnostics.event(id,"lights.task.ok","");}catch(Exception e){Diagnostics.error(id,"lights.task.error",e);ui(() -> status.setText(e.getMessage()==null?"Operace se nezdařila.":e.getMessage()));}
+   finally {Diagnostics.event(id,"lights.task.end","");diagnosticId.remove();ui(() -> {busy=false;for(Button b:controls)b.setEnabled(true);if(hostInput!=null)hostInput.setEnabled(true);});}
   });
  }
  private void ui(Runnable r){runOnUiThread(() -> {if(!closing&&!isFinishing())r.run();});}
@@ -186,7 +193,7 @@ public class LightsActivity extends Activity {
      ui(() -> status.setText("Uloženo a ověřeno: "+desired.size()+" světel. "+(added.isEmpty()?"Poloha a jas zůstaly zachované.":"Novým světlům nastavte polohu v původním průvodci přes Konfigurovat žárovky.")));
     } catch(Exception e) {
      try {for(int id:added)getContentResolver().delete(LAMPS,"LampID=?",new String[]{String.valueOf(id)});for(int id:removed)getContentResolver().insert(LAMPS,before.get(id));if(!readSelection().equals(before))throw new IOException();}
-     catch(Exception rollback){throw new IOException("Uložení selhalo a návrat původního výběru nelze potvrdit. Otevřete původní průvodce TV.");}
+     catch(Exception rollback){Diagnostics.error(diagnosticId.get(),"lights.rollback.error",rollback);Diagnostics.error(diagnosticId.get(),"lights.save.original.error",e);throw new IOException("Uložení selhalo a návrat původního výběru nelze potvrdit. Otevřete původní průvodce TV.");}
      throw e;
     }
    } finally {ui(() -> {for(CheckBox box:choices.values())box.setEnabled(true);});}
@@ -194,28 +201,29 @@ public class LightsActivity extends Activity {
  }
  private void discover() {
   if(discovery!=null){status.setText("Vyhledávání už běží. Případně zadejte IP ručně.");return;}
+  discoveryId=Diagnostics.id();Diagnostics.event(discoveryId,"bridge.discovery.begin","");
   status.setText("Vyhledávám Hue můstek v místní síti…");nsd=(NsdManager)getSystemService(NSD_SERVICE);
   discovery=new NsdManager.DiscoveryListener(){
    public void onDiscoveryStarted(String s){}
    public void onDiscoveryStopped(String s){}
    public void onServiceLost(NsdServiceInfo s){}
-   public void onStartDiscoveryFailed(String s,int e){ui(()->{stopDiscovery();status.setText("Vyhledání není dostupné. Zadejte IP adresu ručně.");});}
-   public void onStopDiscoveryFailed(String s,int e){}
+   public void onStartDiscoveryFailed(String s,int e){Diagnostics.event(discoveryId,"bridge.discovery.start.error","code="+e);ui(()->{stopDiscovery();status.setText("Vyhledání není dostupné. Zadejte IP adresu ručně.");});}
+   public void onStopDiscoveryFailed(String s,int e){Diagnostics.event(discoveryId,"bridge.discovery.stop.error","code="+e);}
    public void onServiceFound(NsdServiceInfo s){
     if(resolving||closing)return;resolving=true;
     nsd.resolveService(s,new NsdManager.ResolveListener(){
-     public void onResolveFailed(NsdServiceInfo i,int e){resolving=false;}
+     public void onResolveFailed(NsdServiceInfo i,int e){Diagnostics.event(discoveryId,"bridge.discovery.resolve.error","code="+e);resolving=false;}
      public void onServiceResolved(NsdServiceInfo i){
       resolving=false;if(i.getHost()==null)return;String candidate=i.getHost().getHostAddress();
-      worker.execute(()->{try{checkBridge(candidate,tvMac());ui(()->{if(hostInput!=null){hostInput.setText(candidate);status.setText("Nalezen napárovaný můstek. Zvolte Načíst světla nebo Spárovat.");}stopDiscovery();});}catch(Exception ignored){}});
+      worker.execute(()->{try{checkBridge(candidate,tvMac());ui(()->{if(hostInput!=null){hostInput.setText(candidate);status.setText("Nalezen napárovaný můstek. Zvolte Načíst světla nebo Spárovat.");}stopDiscovery();});}catch(Exception ignored){Diagnostics.error(discoveryId,"bridge.discovery.candidate.error",ignored);}finally{diagnosticId.remove();}});
      }
     });
    }
   };
-  try{nsd.discoverServices("_hue._tcp.",NsdManager.PROTOCOL_DNS_SD,discovery);}catch(RuntimeException e){stopDiscovery();status.setText("Zadejte IP můstku ručně.");}
+  try{nsd.discoverServices("_hue._tcp.",NsdManager.PROTOCOL_DNS_SD,discovery);}catch(RuntimeException e){Diagnostics.error(discoveryId,"bridge.discovery.error",e);stopDiscovery();status.setText("Zadejte IP můstku ručně.");}
   panel.postDelayed(()->{if(discovery!=null){stopDiscovery();if(!busy)status.setText("Vyhledávání skončilo. Pokud adresa chybí, zadejte ji ručně.");}},12000);
  }
- private void stopDiscovery(){if(discovery!=null){try{nsd.stopServiceDiscovery(discovery);}catch(RuntimeException ignored){}discovery=null;}}
+ private void stopDiscovery(){if(discovery!=null){try{nsd.stopServiceDiscovery(discovery);}catch(RuntimeException ignored){Diagnostics.error(discoveryId,"bridge.discovery.stop.error",ignored);}discovery=null;}}
  @Override public void onBackPressed(){if(busy){status.setText("Počkejte na dokončení operace.");return;}super.onBackPressed();}
  @Override protected void onDestroy(){closing=true;stopDiscovery();worker.shutdown();super.onDestroy();}
 }

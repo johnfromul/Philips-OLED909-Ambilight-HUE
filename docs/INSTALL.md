@@ -12,7 +12,7 @@ export TV_SERIAL="$TV_HOST:5555"  # Replace with its current ADB connection port
 adb pair "$TV_HOST:PAIRING_PORT"  # Only if wireless debugging requires pairing
 adb connect "$TV_SERIAL"
 adb devices -l
-adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.6.apk
+adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.8.apk
 adb -s "$TV_SERIAL" shell am start -W -n local.tv.hue/.MainActivity
 ```
 
@@ -93,3 +93,5 @@ Use **Vypnout synchronizaci** to save native Off and restore the previous lighti
 The native `ambilighthue` log can contain Hue API keys, including in request URLs. Do not publish raw logcat output. The launcher's `HueNativeAPI` tag is designed not to log credentials.
 
 Do not repeatedly retry an unresponsive TV API. Earlier experimental connection handling caused hangs; the exact server-side cause was not established. A restart is a separate disruptive troubleshooting action, not an installation requirement.
+
+For detailed error IDs, persistent logs and safe ADB export, see [DIAGNOSTICS.md](DIAGNOSTICS.md).

@@ -1,3 +1,14 @@
+# Version 1.8 validation — October 27, 2026
+
+- Captured incident 400d6aa2: POST returned 200 after about 2.18 s, same-session verification GET timed out after 9 s; fresh-session follow-up checks consistently returned Off.
+- A first recovery build removed same-session verification and delivered native intents, but two POSTs still left the setting Off. Philips prerequisites for Ambilight and bridge configuration were true; the saved switch was the missing condition.
+- A direct alternate-client request changed the saved switch to On. Changing the production Java writer from separate header/body writes to one combined write then fixed actual Off and On transitions: 187 ms and 166 ms respectively. Both verified the desired value on the first fresh-session GET.
+- Native service entered StatePostLamp and HueIsActive was true after the final On. This is native telemetry; no independent optical lamp measurement was performed. Native bridge discovery/reconnection delays remain outside the launcher's switch-setting fix.
+- A later unrelated pair of API POSTs returned the switch to Off 36 seconds after the first successful On; the launcher recorded no Off request then. The sender is not established. Home Assistant is another known API client, but discovery or a stale socket alone does not prove it sent those commands.
+- Repeated On using the final APK completed in 157 ms. Follow-up checks at 2, 10, 30 and 60 seconds all remained On; native HueIsActive was true at the final check.
+- Eight test methods passed. Recovery scenarios cover a verification timeout, an unapplied command, ambiguous POST timeout, Off, permanent rejection, certificate rejection, bounded failure and read rejection. A JVM regression test executes the production HTTP writer and checks complete header/body writes on both the initial request and Digest retry. Existing diagnostic redaction/rotation and provisioning tests remain passing.
+- Built and signature-verified versionName 1.8 / versionCode 9 using the original signing identity. Installed using install -r, preserving pairing. No reboot, data clear, native APK replacement or wizard configuration change.
+
 # Version 1.6 validation — October 24, 2026
 
 - Four focused provisioning tests passed: preserve an existing pin without network discovery, discover a certificate at the remote TV address while provisioning loopback, deliberately replace a pin, and report rejected configuration without exposing credentials.

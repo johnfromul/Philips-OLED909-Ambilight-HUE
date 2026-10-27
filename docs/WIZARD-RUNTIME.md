@@ -1,6 +1,6 @@
 # Optional root-only native wizard repair
 
-The optional **Hue-Wizard-Runtime-Fix-1.1-Magisk-EN.zip** repairs remote confirmation in the original Philips Hue wizard. It is separate from launcher APK 1.6. The launcher itself does not require root.
+The optional **Hue-Wizard-Runtime-Fix-1.1-Magisk-EN.zip** repairs remote confirmation in the original Philips Hue wizard. It is separate from launcher APK 1.8. The launcher itself does not require root.
 
 ## Tested behavior
 

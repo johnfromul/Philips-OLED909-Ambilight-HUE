@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.8 — October 27, 2026
+
+- Send headers and POST body in one socket write to avoid the observed Philips empty-command acknowledgement.
+- Verify each command over a fresh TLS connection with a fresh Digest challenge.
+- Deliver the native service intent independently of verification read success; bounded recovery permits two explicit state writes and two verification reads per write.
+- Keep certificate pinning and fail on authentication, certificate and protocol errors.
+- Tested real Off and On transitions, with On completing in 166 ms and native HueIsActive true.
+
+## 1.7 — October 24, 2026
+
+- Add private rotating diagnostics, correlated API stages, sanitized exceptions and read-only follow-up switch checks.
+- Provide DUMP-protected export and an ADB collector that filters native service events.
+- Clarify that the saved switch does not independently confirm lamp response.
+
 ## 1.6 — October 24, 2026
 
 - Always connect the Android launcher to the TV API over `127.0.0.1`, including upgrades with obsolete saved LAN/VPN addresses.

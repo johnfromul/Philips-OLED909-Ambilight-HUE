@@ -2,7 +2,7 @@
 
 Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original Philips Hue service already included in the TV firmware.
 
-[Download version 1.6](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.6) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
+[Download version 1.8](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.8) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
 
 ![Ambilight + Hue artwork](artwork/ambilight-hue-approved.png)
 
@@ -23,7 +23,7 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | TV | Philips 65OLED909 |
 | Firmware | `TPM231WW_R.201.100.146.220` (build `3000428`) |
 | Kernel | `5.15.180-android14-11-00042-g766efc243647-dirty` |
-| Release | 1.6, Android versionCode 7 |
+| Release | 1.8, Android versionCode 9 |
 | Android package | `local.tv.hue` |
 | Native service | `org.droidtv.alhuewizard/org.droidtv.ambihue.HueService` |
 | TV API | HTTPS, port 1926, JointSPACE v6 |
@@ -33,7 +33,7 @@ Other models and firmware versions have not been verified. White ambiance lights
 
 ## App controls
 
-The v1.6 APK has a **Czech interface**. This repository's documentation is in English.
+The v1.8 APK has a **Czech interface**. This repository's documentation is in English.
 
 | App label | Meaning |
 | --- | --- |
@@ -43,6 +43,14 @@ The v1.6 APK has a **Czech interface**. This repository's documentation is in En
 | Přidání HUE světel do DB | Select compatible lights for the TV database |
 
 The success message confirms the saved native switch and service request. It does **not** independently confirm that lights are responding.
+
+## Fixed in 1.8
+
+Send HTTP headers and the command body in one socket write. On the tested TV, separate writes caused HTTP 200 acknowledgements without applying the command. Verify the switch on a new authenticated TLS connection, notify the native service before verification can time out, and retry a transient read or one unapplied command within a bounded recovery sequence. Authentication and certificate failures remain errors. Actual light synchronization is still independently controlled by Philips' service.
+
+## Added in 1.7
+
+Persistent, rotating diagnostics correlate button requests, API stages, failures and read-only follow-up checks. Success messages distinguish the saved switch from actual light synchronization. See [Diagnostics](docs/DIAGNOSTICS.md) for safe ADB export and limitations.
 
 ## Fixed in 1.6
 
@@ -55,7 +63,7 @@ An optional **root-only Magisk module** repairs remote confirmation in the origi
 ## Installation overview
 
 1. Enable Android developer options and ADB debugging on the TV.
-2. Install the APK from the v1.5 release.
+2. Install the latest APK.
 3. Pair the native Philips application with your Hue Bridge.
 4. Pair the launcher with the TV API using the included computer-side tools.
 5. Select color lights, configure their positions, enable Ambilight, and start synchronization.
@@ -66,12 +74,12 @@ See [the full installation guide](docs/INSTALL.md) for commands, recovery steps 
 
 - Automatic shutdown of synchronization when the TV enters standby is not implemented. If synchronization is On at standby, it may resume on wake.
 - The most recent manual Off persisted through a tested standby/wake cycle.
-- Earlier experimental clients using multiple TLS connections left the TV API unresponsive. The final client uses one TLS connection for the Digest challenge, POST and verification GET. Several consecutive changes passed, but long-term stability and a subsequent full reboot were not verified.
+- The saved switch and native active indicator do not independently prove optical lamp response. Version 1.8 passed real Off/On checks and a one-minute follow-up; long-term stability and a subsequent full reboot were not verified.
 - No firmware or SELinux modifications are required by this launcher.
 
 ## Repository contents
 
-`src/` contains the four Java classes; `res/`, `artwork/` and `AndroidManifest.xml` contain the app assets and metadata. `tools/` provides pairing and provisioning helpers. `docs/` includes installation, build instructions, technical findings and historical ADB recovery notes. `release/` contains the signed APKs, English distribution bundles and checksums.
+`src/` contains the Android Java sources; `res/`, `artwork/` and `AndroidManifest.xml` contain the app assets and metadata. `tools/` provides pairing and provisioning helpers. `docs/` includes installation, build instructions, technical findings and historical ADB recovery notes. `release/` contains the signed APKs, English distribution bundles and checksums.
 
 No personal TV/Hue credentials, private signing keys, raw device logs, extracted Philips applications or decompiled vendor sources are included.
 

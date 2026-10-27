@@ -11,6 +11,14 @@ public class TvApiConfigProvider extends ContentProvider {
  public boolean onCreate(){return true;}
  @Override public Bundle call(String method,String arg,Bundle extras){
   getContext().enforceCallingOrSelfPermission("android.permission.DUMP","ADB provisioning only");
+  if("diagnostic-check".equals(method)){
+   Diagnostics.init(getContext());String id=Diagnostics.id();Diagnostics.network(getContext(),id);
+   Bundle result=new Bundle();result.putString("id",id);
+   try{result.putString("saved_power",new TvApiClient(getContext(),id).getPower());}
+   catch(Exception e){Diagnostics.error(id,"diagnostic-check.error",e);result.putString("error_type",e.getClass().getName());}
+   return result;
+  }
+  if("diagnostics".equals(method)){Diagnostics.init(getContext());Bundle result=new Bundle();try{result.putString("log",Diagnostics.export());}catch(java.io.IOException e){throw new IllegalStateException("Cannot read diagnostics");}return result;}
   if("status".equals(method)){Bundle status=new Bundle();status.putString("host","127.0.0.1");status.putString("certificate",getContext().getSharedPreferences(TvApiClient.PREFS,Context.MODE_PRIVATE).getString("certificate",""));return status;}
   if(!"configure".equals(method))throw new IllegalArgumentException("Unknown provisioning operation");
   try {
