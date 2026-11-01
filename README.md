@@ -2,7 +2,7 @@
 
 Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original Philips Hue service already included in the TV firmware.
 
-[Download version 1.8](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.8) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
+[Download version 1.9](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.9) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
 
 ![Ambilight + Hue artwork](artwork/ambilight-hue-approved.png)
 
@@ -23,7 +23,7 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | TV | Philips 65OLED909 |
 | Firmware | `TPM231WW_R.201.100.146.220` (build `3000428`) |
 | Kernel | `5.15.180-android14-11-00042-g766efc243647-dirty` |
-| Release | 1.9 source, Android versionCode 10 |
+| Release | 1.9, Android versionCode 10 |
 | Android package | `local.tv.hue` |
 | Native service | `org.droidtv.alhuewizard/org.droidtv.ambihue.HueService` |
 | TV API | HTTPS, port 1926, JointSPACE v6 |
@@ -49,6 +49,7 @@ The success message confirms the saved native switch and service request. It doe
 - Localize every launcher label, action, progress and selection-screen message from the TV system language: Czech, English, German, French and Spanish; other languages use English.
 - The previous hard-coded Czech label **Konfigurovat žárovky** is now **Configure bulbs** on an English TV.
 - The native Philips wizard is not part of this APK. Hue Bridge Pro compatibility has not been verified: the launcher and native wizard were tested only with Hue Bridge V2. Do not claim Bridge Pro support until it has been tested on a compatible TV firmware.
+- This release uses a new signing certificate because the former private signing key could not be recovered. It cannot be installed as an in-place update over releases 1.8 or earlier; uninstall the previous launcher first, then pair the TV API again.
 
 ## Fixed in 1.8
 
@@ -91,4 +92,4 @@ No personal TV/Hue credentials, private signing keys, raw device logs, extracted
 
 ## Project status and attribution
 
-This is an unofficial personal compatibility project, not a Philips or Signify product. Philips, Ambilight and Hue names and associated marks belong to their respective owners. No open-source license has been selected for this publication; public availability alone is not a grant of reuse rights. The prebuilt APK retains the original local signing identity; the private signing key is not distributed.
+This is an unofficial personal compatibility project, not a Philips or Signify product. Philips, Ambilight and Hue names and associated marks belong to their respective owners. No open-source license has been selected for this publication; public availability alone is not a grant of reuse rights. Version 1.9 starts a new local signing identity; its private key is not distributed.
