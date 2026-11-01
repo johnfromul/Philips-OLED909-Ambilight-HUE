@@ -1,1 +1,1 @@
-6c76f8104b46194cd588f6f3bc2d9d6ce018bdd4cde03ffc35c414a61a38f9aa  release/Ambilight-Hue-1.9.apk
+654e2f23a559e6f845830f3dd393967fb2ef0a6ba5458c63cd079a619cca1fb6  release/Ambilight-Hue-1.9.apk

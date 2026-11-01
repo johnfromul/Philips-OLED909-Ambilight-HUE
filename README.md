@@ -49,7 +49,7 @@ The success message confirms the saved native switch and service request. It doe
 - Localize every launcher label, action, progress and selection-screen message from the TV system language: Czech, English, German, French and Spanish; other languages use English.
 - The previous hard-coded Czech label **Konfigurovat žárovky** is now **Configure bulbs** on an English TV.
 - The native Philips wizard is not part of this APK. Hue Bridge Pro compatibility has not been verified: the launcher and native wizard were tested only with Hue Bridge V2. Do not claim Bridge Pro support until it has been tested on a compatible TV firmware.
-- This release uses a new signing certificate because the former private signing key could not be recovered. It cannot be installed as an in-place update over releases 1.8 or earlier; uninstall the previous launcher first, then pair the TV API again.
+- Version 1.9 retains the original Hue launcher signing identity and can be installed as an in-place update over release 1.8 with `adb install -r`. Existing TV API pairing is preserved.
 
 ## Fixed in 1.8
 
@@ -92,4 +92,4 @@ No personal TV/Hue credentials, private signing keys, raw device logs, extracted
 
 ## Project status and attribution
 
-This is an unofficial personal compatibility project, not a Philips or Signify product. Philips, Ambilight and Hue names and associated marks belong to their respective owners. No open-source license has been selected for this publication; public availability alone is not a grant of reuse rights. Version 1.9 starts a new local signing identity; its private key is not distributed.
+This is an unofficial personal compatibility project, not a Philips or Signify product. Philips, Ambilight and Hue names and associated marks belong to their respective owners. No open-source license has been selected for this publication; public availability alone is not a grant of reuse rights. The private signing key is not distributed.
