@@ -62,17 +62,17 @@ public class LightsActivity extends Activity {
   panel.addView(b,lp);controls.add(b);b.setOnClickListener(v -> {if(!busy) action.run();});return b;
  }
  private void connectionScreen() {
-  base("Přidání HUE světel do DB");
-  text("Světla se načtou z můstku napárovaného s TV. Při prvním použití stiskněte fyzické tlačítko můstku a zvolte Spárovat.",18);
+  base(Strings.get(this,"add_title"));
+  text(Strings.get(this,"add_help"),18);
   hostInput=new EditText(this);hostInput.setSingleLine(true);hostInput.setTextColor(Color.WHITE);
-  hostInput.setTextSize(20);hostInput.setHint("IP adresa Hue můstku");hostInput.setHintTextColor(Color.LTGRAY);
+  hostInput.setTextSize(20);hostInput.setHint(Strings.get(this,"ip_hint"));hostInput.setHintTextColor(Color.LTGRAY);
   hostInput.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
   hostInput.setText(prefs.getString("host",""));panel.addView(hostInput,new LinearLayout.LayoutParams(-1,110));
-  button("Vyhledat můstek v síti",this::discover);
-  button("Načíst kompatibilní světla",() -> load(false));
-  button("Spárovat – tlačítko můstku je stisknuté",() -> load(true));
-  button("Zpět",this::finish);
-  status.setText("TV musí být s můstkem síťově propojená. Adresu lze zadat i ručně.");
+  button(Strings.get(this,"discover"),this::discover);
+  button(Strings.get(this,"load"),() -> load(false));
+  button(Strings.get(this,"pair"),() -> load(true));
+  button(Strings.get(this,"back"),this::finish);
+  status.setText(Strings.get(this,"network_required"));
  }
  private static String normalize(String s) {return s==null?"":s.replaceAll("[^a-fA-F0-9]", "").toLowerCase(Locale.ROOT);}
  private String tvMac() throws Exception {
@@ -118,14 +118,14 @@ public class LightsActivity extends Activity {
   if(busy)return;busy=true;for(Button b:controls)b.setEnabled(false);if(hostInput!=null)hostInput.setEnabled(false);status.setText(message);
   worker.execute(() -> {
    String id=Diagnostics.id();diagnosticId.set(id);Diagnostics.event(id,"lights.task.begin","");Diagnostics.network(this,id);
-   try {work.run();Diagnostics.event(id,"lights.task.ok","");}catch(Exception e){Diagnostics.error(id,"lights.task.error",e);ui(() -> status.setText(e.getMessage()==null?"Operace se nezdařila.":e.getMessage()));}
+   try {work.run();Diagnostics.event(id,"lights.task.ok","");}catch(Exception e){Diagnostics.error(id,"lights.task.error",e);ui(() -> status.setText(Strings.get(this,"operation_failed",id)));}
    finally {Diagnostics.event(id,"lights.task.end","");diagnosticId.remove();ui(() -> {busy=false;for(Button b:controls)b.setEnabled(true);if(hostInput!=null)hostInput.setEnabled(true);});}
   });
  }
  private void ui(Runnable r){runOnUiThread(() -> {if(!closing&&!isFinishing())r.run();});}
  private void load(boolean pair) {
   String candidate=hostInput.getText().toString().trim();
-  task("Připojuji se k můstku…",() -> {
+  task(Strings.get(this,"connecting"),() -> {
    String mac=tvMac();checkBridge(candidate,mac);
    prefs.edit().putString("host",candidate).apply();
    String key=prefs.getString("mac","").equals(mac)?prefs.getString("token",""):"";
@@ -135,7 +135,7 @@ public class LightsActivity extends Activity {
     while(result==null){
      if(closing)throw new IOException("Párování zrušeno.");
      try{result=(JSONArray)request(candidate,"/api",new JSONObject().put("devicetype","ambilight_hue#tv_picker").toString());}
-     catch(HueError error){if(error.type!=101||android.os.SystemClock.elapsedRealtime()>=deadline)throw error;ui(()->status.setText("Nyní stiskněte fyzické tlačítko na Hue můstku. Čekám až 45 sekund…"));Thread.sleep(1200);}
+     catch(HueError error){if(error.type!=101||android.os.SystemClock.elapsedRealtime()>=deadline)throw error;ui(()->status.setText(Strings.get(this,"pair_press")));Thread.sleep(1200);}
     }
     key=result.getJSONObject(0).getJSONObject("success").getString("username");
    }
@@ -152,31 +152,31 @@ public class LightsActivity extends Activity {
  }
  private void showLights(JSONObject lamps,List<Integer> ids,Map<Integer,ContentValues> selected) {
   stopDiscovery();hostInput=null;initial=selected;
-  base("Výběr Hue světel pro Ambilight");
-  text("Zaškrtněte požadovaná světla a zvolte Uložit výběr. Nejvýše 10 světel. Již uloženým světlům zůstane poloha i jas.",18);
+  base(Strings.get(this,"select_title"));
+  text(Strings.get(this,"select_help"),18);
   for(int id:ids) {
    JSONObject lamp=lamps.optJSONObject(String.valueOf(id));
-   CheckBox box=new CheckBox(this);box.setText(lamp.optString("name","Světlo "+id)+"  (ID "+id+")");
+   CheckBox box=new CheckBox(this);box.setText(lamp.optString("name",Strings.get(this,"light",id))+"  (ID "+id+")");
    box.setTextColor(Color.WHITE);box.setTextSize(21);box.setPadding(20,8,20,8);box.setMinHeight(128);box.setButtonTintList(android.content.res.ColorStateList.valueOf(Color.rgb(90,220,240)));
    box.setChecked(selected.containsKey(id));box.setFocusable(true);panel.addView(box,new LinearLayout.LayoutParams(-1,128));choices.put(id,box);
   }
   int hidden=0;for(int id:selected.keySet())if(!choices.containsKey(id))hidden++;
-  status.setText("Kompatibilní světla: "+ids.size()+(hidden>0?". Dalších "+hidden+" uložených světel není v seznamu; zůstanou zachovaná.":""));
-  if(ids.isEmpty())text("Můstek neobsahuje světla typu Color light nebo Extended color light.",18);
-  Button save=button("Uložit výběr",this::save);save.setEnabled(!ids.isEmpty());
-  button("Připojení k můstku",this::connectionScreen);button("Zpět",this::finish);
+  status.setText(Strings.get(this,"compatible",ids.size())+(hidden>0?Strings.get(this,"hidden",hidden):""));
+  if(ids.isEmpty())text(Strings.get(this,"no_lights"),18);
+  Button save=button(Strings.get(this,"save"),this::save);save.setEnabled(!ids.isEmpty());
+  button(Strings.get(this,"connection"),this::connectionScreen);button(Strings.get(this,"back"),this::finish);
   if(!choices.isEmpty())choices.values().iterator().next().requestFocus();
  }
  private void save() {
   Set<Integer> desired=new LinkedHashSet<>(initial.keySet());
   for(Map.Entry<Integer,CheckBox> entry:choices.entrySet()){if(entry.getValue().isChecked())desired.add(entry.getKey());else desired.remove(entry.getKey());}
-  if(desired.size()>10){status.setText("TV podporuje nejvýše 10 vybraných světel.");return;}
-  if(desired.isEmpty())new AlertDialog.Builder(this).setMessage("Nezůstane vybrané žádné světlo pro Ambilight. Uložit prázdný výběr?").setPositiveButton("Uložit",(d,w)->writeSelection(desired)).setNegativeButton("Zrušit",null).show();
+  if(desired.size()>10){status.setText(Strings.get(this,"too_many"));return;}
+  if(desired.isEmpty())new AlertDialog.Builder(this).setMessage(Strings.get(this,"empty")).setPositiveButton(Strings.get(this,"save"),(d,w)->writeSelection(desired)).setNegativeButton(Strings.get(this,"cancel"),null).show();
   else writeSelection(desired);
  }
  private void writeSelection(Set<Integer> desired) {
   for(CheckBox box:choices.values())box.setEnabled(false);
-  task("Ukládám výběr…",() -> {
+  task(Strings.get(this,"saving"),() -> {
    try {
     if(!bridgeMac.equals(tvMac()))throw new IOException("Párování TV se změnilo. Načtěte světla znovu.");
     checkBridge(host,bridgeMac);
@@ -190,7 +190,7 @@ public class LightsActivity extends Activity {
      if(!after.keySet().equals(desired))throw new IOException("Kontrola uloženého výběru nesouhlasí.");
      for(int id:desired)if(before.containsKey(id)&&!before.get(id).equals(after.get(id)))throw new IOException("Nastavení existujícího světla se změnilo.");
      initial=after;
-     ui(() -> status.setText("Uloženo a ověřeno: "+desired.size()+" světel. "+(added.isEmpty()?"Poloha a jas zůstaly zachované.":"Novým světlům nastavte polohu v původním průvodci přes Konfigurovat žárovky.")));
+     ui(() -> status.setText(Strings.get(this,"saved",desired.size(),Strings.get(this,added.isEmpty()?"kept":"configure_new"))));
     } catch(Exception e) {
      try {for(int id:added)getContentResolver().delete(LAMPS,"LampID=?",new String[]{String.valueOf(id)});for(int id:removed)getContentResolver().insert(LAMPS,before.get(id));if(!readSelection().equals(before))throw new IOException();}
      catch(Exception rollback){Diagnostics.error(diagnosticId.get(),"lights.rollback.error",rollback);Diagnostics.error(diagnosticId.get(),"lights.save.original.error",e);throw new IOException("Uložení selhalo a návrat původního výběru nelze potvrdit. Otevřete původní průvodce TV.");}
@@ -200,14 +200,14 @@ public class LightsActivity extends Activity {
   });
  }
  private void discover() {
-  if(discovery!=null){status.setText("Vyhledávání už běží. Případně zadejte IP ručně.");return;}
+  if(discovery!=null){status.setText(Strings.get(this,"search_running"));return;}
   discoveryId=Diagnostics.id();Diagnostics.event(discoveryId,"bridge.discovery.begin","");
-  status.setText("Vyhledávám Hue můstek v místní síti…");nsd=(NsdManager)getSystemService(NSD_SERVICE);
+  status.setText(Strings.get(this,"searching"));nsd=(NsdManager)getSystemService(NSD_SERVICE);
   discovery=new NsdManager.DiscoveryListener(){
    public void onDiscoveryStarted(String s){}
    public void onDiscoveryStopped(String s){}
    public void onServiceLost(NsdServiceInfo s){}
-   public void onStartDiscoveryFailed(String s,int e){Diagnostics.event(discoveryId,"bridge.discovery.start.error","code="+e);ui(()->{stopDiscovery();status.setText("Vyhledání není dostupné. Zadejte IP adresu ručně.");});}
+   public void onStartDiscoveryFailed(String s,int e){Diagnostics.event(discoveryId,"bridge.discovery.start.error","code="+e);ui(()->{stopDiscovery();status.setText(Strings.get(LightsActivity.this,"search_unavailable"));});}
    public void onStopDiscoveryFailed(String s,int e){Diagnostics.event(discoveryId,"bridge.discovery.stop.error","code="+e);}
    public void onServiceFound(NsdServiceInfo s){
     if(resolving||closing)return;resolving=true;
@@ -215,15 +215,15 @@ public class LightsActivity extends Activity {
      public void onResolveFailed(NsdServiceInfo i,int e){Diagnostics.event(discoveryId,"bridge.discovery.resolve.error","code="+e);resolving=false;}
      public void onServiceResolved(NsdServiceInfo i){
       resolving=false;if(i.getHost()==null)return;String candidate=i.getHost().getHostAddress();
-      worker.execute(()->{try{checkBridge(candidate,tvMac());ui(()->{if(hostInput!=null){hostInput.setText(candidate);status.setText("Nalezen napárovaný můstek. Zvolte Načíst světla nebo Spárovat.");}stopDiscovery();});}catch(Exception ignored){Diagnostics.error(discoveryId,"bridge.discovery.candidate.error",ignored);}finally{diagnosticId.remove();}});
+      worker.execute(()->{try{checkBridge(candidate,tvMac());ui(()->{if(hostInput!=null){hostInput.setText(candidate);status.setText(Strings.get(LightsActivity.this,"found"));}stopDiscovery();});}catch(Exception ignored){Diagnostics.error(discoveryId,"bridge.discovery.candidate.error",ignored);}finally{diagnosticId.remove();}});
      }
     });
    }
   };
-  try{nsd.discoverServices("_hue._tcp.",NsdManager.PROTOCOL_DNS_SD,discovery);}catch(RuntimeException e){Diagnostics.error(discoveryId,"bridge.discovery.error",e);stopDiscovery();status.setText("Zadejte IP můstku ručně.");}
-  panel.postDelayed(()->{if(discovery!=null){stopDiscovery();if(!busy)status.setText("Vyhledávání skončilo. Pokud adresa chybí, zadejte ji ručně.");}},12000);
+  try{nsd.discoverServices("_hue._tcp.",NsdManager.PROTOCOL_DNS_SD,discovery);}catch(RuntimeException e){Diagnostics.error(discoveryId,"bridge.discovery.error",e);stopDiscovery();status.setText(Strings.get(this,"search_unavailable"));}
+  panel.postDelayed(()->{if(discovery!=null){stopDiscovery();if(!busy)status.setText(Strings.get(this,"search_done"));}},12000);
  }
  private void stopDiscovery(){if(discovery!=null){try{nsd.stopServiceDiscovery(discovery);}catch(RuntimeException ignored){Diagnostics.error(discoveryId,"bridge.discovery.stop.error",ignored);}discovery=null;}}
- @Override public void onBackPressed(){if(busy){status.setText("Počkejte na dokončení operace.");return;}super.onBackPressed();}
+ @Override public void onBackPressed(){if(busy){status.setText(Strings.get(this,"wait"));return;}super.onBackPressed();}
  @Override protected void onDestroy(){closing=true;stopDiscovery();worker.shutdown();super.onDestroy();}
 }

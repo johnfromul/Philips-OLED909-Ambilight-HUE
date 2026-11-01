@@ -26,23 +26,23 @@ public class MainActivity extends Activity {
   title.setText("Ambilight + Hue"); title.setTextSize(30); title.setTextColor(Color.WHITE);
   panel.addView(title);
   TextView description=new TextView(this);
-  description.setText("Vypnutí synchronizace obnoví předchozí osvětlení.");
+  description.setText(Strings.get(this,"restore"));
   description.setTextColor(Color.LTGRAY); description.setTextSize(18);
   description.setPadding(0,12,0,24); panel.addView(description);
-  Button on=button(panel,"Zapnout synchronizaci");
+  Button on=button(panel,Strings.get(this,"on"));
   on.setOnClickListener(v -> sync(true));
-  Button off=button(panel,"Vypnout synchronizaci");
+  Button off=button(panel,Strings.get(this,"off"));
   off.setOnClickListener(v -> sync(false));
-  Button configure=button(panel,"Konfigurovat žárovky");
+  Button configure=button(panel,Strings.get(this,"configure"));
   configure.setOnClickListener(v -> {
    try {
     Diagnostics.event(Diagnostics.id(),"wizard.open","requested=true");
     startActivity(new Intent().setComponent(new ComponentName("org.droidtv.alhuewizard","org.droidtv.alhuewizard.ALHueWizardActivity")));
-   } catch(RuntimeException e) {Diagnostics.error("wizard","wizard.open.error",e);status.setText("Průvodce není dostupný.");}
+  } catch(RuntimeException e) {Diagnostics.error("wizard","wizard.open.error",e);status.setText(Strings.get(this,"wizard_missing"));}
   });
   status=new TextView(this); status.setTextColor(Color.WHITE); status.setTextSize(16);
   status.setPadding(0,20,0,0); panel.addView(status);
-  Button lights=button(panel,"Přidání HUE světel do DB");
+  Button lights=button(panel,Strings.get(this,"add"));
   lights.setOnClickListener(v -> startActivity(new Intent(this,LightsActivity.class)));
   android.widget.ScrollView scroll=new android.widget.ScrollView(this);
   scroll.setFillViewport(true); scroll.addView(panel);
@@ -75,14 +75,14 @@ public class MainActivity extends Activity {
   final long began=android.os.SystemClock.elapsedRealtime();
   Diagnostics.event(id,"request.begin","desired="+(on?"On":"Off"));Diagnostics.network(this,id);
   busy=true;for(Button b:buttons)b.setEnabled(false);
-  status.setText(on?"Zapínám synchronizaci…":"Vypínám synchronizaci a obnovuji osvětlení…");
+  status.setText(Strings.get(this,on?"starting":"stopping"));
   apiWorker.execute(() -> {
    String message;
    try {
     new TvApiClient(this,id).setPower(on,() -> notifyNative(on,id));
     observe(id,on,token);
-    message=on?"Požadavek na zapnutí přijat. Přepínač Hue je zapnutý; reakce světel zatím není ověřena.":"Nativní přepínač Hue je vypnutý. Předchozí osvětlení se obnovuje.";
-   } catch(Exception e) {Diagnostics.error(id,"request.error",e);message="Požadavek selhal ("+e.getClass().getSimpleName()+"). Diagnostika: "+id;observe(id,on,token);}
+    message=Strings.get(this,on?"on_ok":"off_ok");
+   } catch(Exception e) {Diagnostics.error(id,"request.error",e);message=Strings.get(this,"request_failed",e.getClass().getSimpleName(),id);observe(id,on,token);}
    Diagnostics.event(id,"request.end","duration_ms="+(android.os.SystemClock.elapsedRealtime()-began));
    final String result=message;
    runOnUiThread(() -> {if(!isFinishing()&&!isDestroyed()){status.setText(result);busy=false;for(Button b:buttons)b.setEnabled(true);}});

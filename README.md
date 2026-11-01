@@ -23,7 +23,7 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | TV | Philips 65OLED909 |
 | Firmware | `TPM231WW_R.201.100.146.220` (build `3000428`) |
 | Kernel | `5.15.180-android14-11-00042-g766efc243647-dirty` |
-| Release | 1.8, Android versionCode 9 |
+| Release | 1.9 source, Android versionCode 10 |
 | Android package | `local.tv.hue` |
 | Native service | `org.droidtv.alhuewizard/org.droidtv.ambihue.HueService` |
 | TV API | HTTPS, port 1926, JointSPACE v6 |
@@ -33,16 +33,22 @@ Other models and firmware versions have not been verified. White ambiance lights
 
 ## App controls
 
-The v1.8 APK has a **Czech interface**. This repository's documentation is in English.
+The launcher follows the TV system language for Czech, English, German, French and Spanish. Other system languages fall back to English. The native Philips wizard opened by the launcher remains a separate TV component and uses its own language support.
 
 | App label | Meaning |
 | --- | --- |
-| Zapnout synchronizaci | Turn synchronization on |
-| Vypnout synchronizaci | Turn synchronization off and restore previous lighting |
-| Konfigurovat žárovky | Open the native bulb configuration wizard |
-| Přidání HUE světel do DB | Select compatible lights for the TV database |
+| Turn on synchronization | Turn synchronization on |
+| Turn off synchronization | Turn synchronization off and restore previous lighting |
+| Configure bulbs | Open the native bulb configuration wizard |
+| Add Hue lights to TV | Select compatible lights for the TV database |
 
 The success message confirms the saved native switch and service request. It does **not** independently confirm that lights are responding.
+
+## Added in 1.9
+
+- Localize every launcher label, action, progress and selection-screen message from the TV system language: Czech, English, German, French and Spanish; other languages use English.
+- The previous hard-coded Czech label **Konfigurovat žárovky** is now **Configure bulbs** on an English TV.
+- The native Philips wizard is not part of this APK. Hue Bridge Pro compatibility has not been verified: the launcher and native wizard were tested only with Hue Bridge V2. Do not claim Bridge Pro support until it has been tested on a compatible TV firmware.
 
 ## Fixed in 1.8
 

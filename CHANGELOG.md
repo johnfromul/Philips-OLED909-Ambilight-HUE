@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9 — November 1, 2026
+
+- Localize the launcher using the TV system language: Czech, English, German, French and Spanish. Other locales fall back to English.
+- Localize the button that opens the native Philips wizard and the launcher-managed light-selection flow.
+- Clarify the unverified status of Hue Bridge Pro compatibility. The native wizard and launcher workflow have only been tested with Hue Bridge V2.
+
 ## 1.8 — October 27, 2026
 
 - Send headers and POST body in one socket write to avoid the observed Philips empty-command acknowledgement.
