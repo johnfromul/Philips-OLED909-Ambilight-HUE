@@ -2,7 +2,7 @@
 
 ## Requirements
 
-A compatible Philips TV with its original Ambilight + Hue service, a reachable Hue Bridge with color lights, Python 3, curl and Android platform-tools (`adb`). The tested firmware and release are listed in the README.
+A compatible Philips TV with its original Ambilight + Hue service and a reachable Hue Bridge with color lights. The tested firmware and release are listed in the README. Version 1.10 can pair with the TV entirely on the TV, using its Accessibility pairing helper. Python 3 and curl are needed only for the optional computer-side pairing method. Android platform-tools (`adb`) are needed for the example installation commands below; an APK may also be installed using your usual TV sideloading method.
 
 Use your own TV IP and current ADB port in all examples. `TV_SERIAL` is the full ADB device identifier; the pairing port and connection port may differ.
 
@@ -12,7 +12,7 @@ export TV_SERIAL="$TV_HOST:5555"  # Replace with its current ADB connection port
 adb pair "$TV_HOST:PAIRING_PORT"  # Only if wireless debugging requires pairing
 adb connect "$TV_SERIAL"
 adb devices -l
-adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.8.apk
+adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.10.apk
 adb -s "$TV_SERIAL" shell am start -W -n local.tv.hue/.MainActivity
 ```
 
@@ -29,6 +29,14 @@ adb -s "$TV_SERIAL" shell am start -W -n org.droidtv.alhuewizard/.ALHueWizardAct
 Follow the native pairing flow and press the physical Hue Bridge button when requested. The launcher preserves this original Philips pairing. TV API pairing below is a separate step.
 
 ## Pair the TV API
+
+Starting with version 1.10, choose **App pairing** in the launcher. On first use, follow the prompt to enable **Ambilight + Hue pairing** in the TV's Accessibility settings, then return and choose App pairing again. The helper reads the PIN from the Philips system prompt and completes pairing while that prompt remains open. Do not close the TV's PIN prompt: closing it cancels authorization. No computer or root is required for this step. The launcher verifies API access before replacing existing credentials. If pairing fails or expires, choose App pairing again. This is separate from pairing the native wizard with the Hue Bridge.
+
+The accessibility helper listens only to selected Philips/system packages and reads the specifically named Ambilight Hue control PIN prompt only during a user-initiated pairing attempt. It does not click controls or log the PIN. You may disable the helper after successful pairing; normal synchronization does not need it. Tested on the owner's OLED909: native grant returned SUCCESS and authenticated HueLamp/power returned HTTP 200 on 4 November 2026.
+
+Pairing connects only to the TV's own loopback address. The initial local certificate is pinned for the grant and subsequent API requests. PINs and credentials are not written to diagnostic logs.
+
+The computer-side method below remains available for older versions and recovery.
 
 Run these commands from the repository root. Keep `TV_HOST` exported for each invocation of `tv_api.py`.
 
@@ -51,7 +59,7 @@ The existing certificate pin is preserved unless you deliberately pass `--replac
 
 ## Recovery after a wipe
 
-A wipe can erase the launcher data and invalidate previously paired TV API credentials. Installing an old APK or re-provisioning an old state file does not restore valid authorization.
+A wipe can erase the launcher data and invalidate previously paired TV API credentials. Installing an old APK or re-provisioning an old state file does not restore valid authorization. In version 1.10, use **App pairing** again to create and verify new credentials directly on the TV. The alternative computer-side recovery procedure follows.
 
 1. Keep the previous private state file outside the repository if you need an archive; otherwise use `renew` deliberately to replace only your pairing helper's current state.
 2. Request fresh pairing and read the new short-lived PIN on the TV.
@@ -71,12 +79,12 @@ For the optional root-only native wizard repair, see [WIZARD-RUNTIME.md](WIZARD-
 
 ## Select and configure lights
 
-1. Open **Přidání HUE světel do DB**.
+1. Open **Add Hue lights to TV** (labels follow your TV language).
 2. Discover the bridge or enter its IPv4 address.
-3. On first use, press the bridge's physical button and choose **Spárovat**.
+3. On first use, press the bridge's physical button and choose **Pair**.
 4. Select up to ten compatible color lights and save.
-5. Open **Konfigurovat žárovky** and set their positions and brightness in the native wizard.
-6. Turn on the TV's own Ambilight, then choose **Zapnout synchronizaci**.
+5. Open **Configure bulbs** and set their positions and brightness in the native wizard. If its confirmation does not work, TV API pairing alone will not fix it; see the separate root-only runtime repair notes.
+6. Turn on the TV's own Ambilight, then choose **Turn on synchronization**.
 
 Existing position and brightness configuration is retained for lights that remain selected. White ambiance lights are not offered.
 

@@ -24,8 +24,10 @@ final class TvApiClient {
  private void trace(String value){stage=value;Diagnostics.event(operation,value,"duration_ms="+(android.os.SystemClock.elapsedRealtime()-started));}
  TvApiClient(Context context) throws Exception {this(context,Diagnostics.id());}
  TvApiClient(Context context,String operation) throws Exception {
+  this(context,operation,context.getSharedPreferences(PREFS,Context.MODE_PRIVATE));
+ }
+ private TvApiClient(Context context,String operation,SharedPreferences p) throws Exception {
   this.operation=operation;started=android.os.SystemClock.elapsedRealtime();Diagnostics.init(context);trace("config.begin");
-  SharedPreferences p=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
   user=p.getString("user","");password=p.getString("password","");pin=p.getString("certificate","");
   // The launcher controls the TV on which it runs; never depend on its LAN/VPN IP.
   host="127.0.0.1";
@@ -74,8 +76,13 @@ final class TvApiClient {
  String getPower() throws Exception {
   String power=safePower(new JSONObject(exchange("GET",null)).optString("power"));Diagnostics.event(operation,"power.observed","saved="+power);return power;
  }
- private String request(String method,String body) throws Exception {
-  String uri="/6/HueLamp/power";
+ String pairingGrant(String body) throws Exception {
+  deadline=android.os.SystemClock.elapsedRealtime()+15000;
+  try {connect();return request("POST",body,"/6/pair/grant");}finally{close();}
+ }
+ static TvApiClient pairingClient(Context context,SharedPreferences pending)throws Exception{return new TvApiClient(context,"pairing",pending);}
+ private String request(String method,String body) throws Exception {return request(method,body,"/6/HueLamp/power");}
+ private String request(String method,String body,String uri) throws Exception {
   for(int attempt=0;attempt<3;attempt++) {
    trace(method+".attempt."+attempt+".write");
    byte[] bytes=body==null?new byte[0]:body.getBytes("UTF-8");

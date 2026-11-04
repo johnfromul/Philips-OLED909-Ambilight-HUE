@@ -2,13 +2,14 @@
 
 Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original Philips Hue service already included in the TV firmware.
 
-[Download version 1.9](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.9) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
+[Download version 1.10](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.10) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
 
 ![Ambilight + Hue artwork](artwork/ambilight-hue-approved.png)
 
 ## What it does
 
 - Turns synchronization on and off from a TV remote friendly launcher.
+- Pairs the launcher with the TV directly on the TV, without computer-side scripts or root. First enable the optional pairing helper in Accessibility settings.
 - Saves the native Hue On/Off setting through the paired JointSPACE API, then notifies the native Philips service.
 - Restores the previous light state when synchronization is turned off, using Philips' own restoration mechanism.
 - Opens the native bulb position and brightness configuration wizard.
@@ -23,7 +24,7 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | TV | Philips 65OLED909 |
 | Firmware | `TPM231WW_R.201.100.146.220` (build `3000428`) |
 | Kernel | `5.15.180-android14-11-00042-g766efc243647-dirty` |
-| Release | 1.9, Android versionCode 10 |
+| Release | 1.10, Android versionCode 11 |
 | Android package | `local.tv.hue` |
 | Native service | `org.droidtv.alhuewizard/org.droidtv.ambihue.HueService` |
 | TV API | HTTPS, port 1926, JointSPACE v6 |
@@ -41,8 +42,17 @@ The launcher follows the TV system language for Czech, English, German, French a
 | Turn off synchronization | Turn synchronization off and restore previous lighting |
 | Configure bulbs | Open the native bulb configuration wizard |
 | Add Hue lights to TV | Select compatible lights for the TV database |
+| App pairing | Authorize the launcher with the TV API using the on-screen PIN helper |
 
 The success message confirms the saved native switch and service request. It does **not** independently confirm that lights are responding.
+
+## Added in 1.10
+
+- Choose **App pairing** to authorize the launcher directly on the TV. On first use, enable **Ambilight + Hue pairing** in Accessibility settings, return to the launcher, and choose App pairing again.
+- Philips displays a system PIN prompt that blocks ordinary app input. The helper reads that specific prompt and completes authorization while it remains open. Do not close the prompt yourself.
+- The helper processes the PIN only during an explicit pairing attempt. PINs and credentials are not logged. After pairing, the helper can be disabled; normal On/Off control does not require Accessibility.
+- The app verifies authenticated TV API access before replacing existing credentials. Updating from 1.9 preserves existing pairing; already paired users do not need to pair again.
+- Verified on the owner's OLED909 on November 4, 2026: grant returned `SUCCESS`, followed by an authenticated `HueLamp/power` read with HTTP 200. This test verifies API authorization, not a new full native-wizard or optical synchronization test.
 
 ## Added in 1.9
 
@@ -72,7 +82,7 @@ An optional **root-only Magisk module** repairs remote confirmation in the origi
 1. Enable Android developer options and ADB debugging on the TV.
 2. Install the latest APK.
 3. Pair the native Philips application with your Hue Bridge.
-4. Pair the launcher with the TV API using the included computer-side tools.
+4. Choose **App pairing**, enable the pairing helper in Accessibility when prompted, return and choose **App pairing** again. The original computer-side tools remain available as an alternative.
 5. Select color lights, configure their positions, enable Ambilight, and start synchronization.
 
 See [the full installation guide](docs/INSTALL.md) for commands, recovery steps and certificate handling.
@@ -83,6 +93,7 @@ See [the full installation guide](docs/INSTALL.md) for commands, recovery steps 
 - The most recent manual Off persisted through a tested standby/wake cycle.
 - The saved switch and native active indicator do not independently prove optical lamp response. Version 1.8 passed real Off/On checks and a one-minute follow-up; long-term stability and a subsequent full reboot were not verified.
 - No firmware or SELinux modifications are required by this launcher.
+- TV API pairing does not repair the native Philips wizard. Some TVs have non-working bulb selection/confirmation; the separate runtime repair requires root. Bridge Pro remains unverified. A reported multi-bridge search stalled while reading the second bridge, even though mDNS had found both; disconnecting that bridge allowed V2 discovery to complete.
 
 ## Repository contents
 

@@ -16,7 +16,7 @@ public class MainActivity extends Activity {
  private final java.util.concurrent.ExecutorService apiWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
  @Override public void onCreate(Bundle state) {
   super.onCreate(state);
-  Diagnostics.init(this);Diagnostics.event("lifecycle","create","version=1.8 sdk="+android.os.Build.VERSION.SDK_INT);
+  Diagnostics.init(this);Diagnostics.event("lifecycle","create","version=1.10 sdk="+android.os.Build.VERSION.SDK_INT);
   LinearLayout panel=new LinearLayout(this);
   panel.setOrientation(LinearLayout.VERTICAL);
   panel.setGravity(android.view.Gravity.CENTER);
@@ -44,6 +44,11 @@ public class MainActivity extends Activity {
   status.setPadding(0,20,0,0); panel.addView(status);
   Button lights=button(panel,Strings.get(this,"add"));
   lights.setOnClickListener(v -> startActivity(new Intent(this,LightsActivity.class)));
+  Button pairing=button(panel,AppPairing.text(this,0));
+  pairing.setOnClickListener(v -> {
+   if(busy)return;busy=true;for(Button b:buttons)b.setEnabled(false);status.setText(AppPairing.text(this,1));
+   AppPairing.start(this,message->{if(isFinishing()||isDestroyed())return;status.setText(message);if(!message.equals(AppPairing.text(this,6))){busy=false;for(Button b:buttons)b.setEnabled(true);}});
+  });
   android.widget.ScrollView scroll=new android.widget.ScrollView(this);
   scroll.setFillViewport(true); scroll.addView(panel);
   setContentView(scroll); on.requestFocus();

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10 — November 4, 2026
+
+- Add TV-local App pairing with Czech, English, German, French and Spanish instructions.
+- Add an explicitly enabled Accessibility helper for the Philips PIN prompt, scoped to selected system packages and an active pairing request. Closing the native prompt cancels pairing, so authorization completes while it stays open.
+- Pin the local TV certificate, reuse Digest authentication for the grant, and verify authenticated API access before saving new credentials. Keep existing credentials on failure.
+- Verify native grant SUCCESS and authenticated power read HTTP 200 on the owner's OLED909. Root and computer-side provisioning are not used by the pairing flow.
+
 ## 1.9 — November 1, 2026
 
 - Localize the launcher using the TV system language: Czech, English, German, French and Spanish. Other locales fall back to English.
