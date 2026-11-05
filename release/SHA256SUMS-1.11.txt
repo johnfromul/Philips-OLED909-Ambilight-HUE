@@ -1,0 +1,3 @@
+916b6bbe932b37a199559a1ea4155ed0062f8a76a7f8a19a7562069cdd497c3f  Ambilight-Hue-1.11.apk
+c975478c3f9164b79fbef5d9402c7ca4760b6ae49c70b7a5795a2fd6159bd7be  Ambilight-Hue-1.11-bundle.zip
+4f7b6de81e18524cdb1b6ae7d149008e83bb3440fd8bc00f45f568149992cb63  Philips-OLED909-Ambilight-HUE-1.11-source.zip
