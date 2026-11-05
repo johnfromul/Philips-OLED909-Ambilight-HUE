@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.12 — 2026-11-05
+
+- Reordered setup: Find Bridge, Pair Hue Bridge, App pairing, Load compatible lights.
+- Added explicit Bridge pairing success/OK and a yellow, bold physical-button prompt.
+- Deferred TV PIN pairing until Save and start synchronization after Accessibility permission is granted; final success reports both pairing and save.
+- Preserved per-Bridge editing drafts and showed a clear prerequisite message when pairing permission was not prepared.
+- Removed the redundant Bridge connection control from the light screen; Back returns to setup.
+- Extended discovery and Bridge-button waiting to 120 seconds with localized countdowns and protection against stale discovery results.
+- All new controls and messages follow CZ/EN/DE/FR/ES system language; English fallback.
+- Owner confirmed successful clean setup; nine focused tests pass.
+
 ## 1.11 — 2026-11-05
 
 - Added rootless Hue Bridge setup directly in the app: fresh username/client key, native service handoff, light positions and brightness.

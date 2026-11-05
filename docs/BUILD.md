@@ -15,7 +15,7 @@ For a new signing identity, create your own keystore interactively using `keytoo
 
 The output is `build/ambilight-hue-launcher.apk`. The script creates its output directories, compiles Java and resources, adds DEX, aligns, signs and verifies the APK. Passwords are supplied to apksigner through environment references rather than literal command arguments.
 
-The current release is `release/Ambilight-Hue-1.11.apk`, Android versionCode 12, minimum Android API 26. It is signed with the original local Hue identity so it updates earlier releases in place. No private signing material is distributed.
+The current release is `release/Ambilight-Hue-1.12.apk`, Android versionCode 13, minimum Android API 26. It is signed with the original local Hue identity so it updates earlier releases in place. No private signing material is distributed.
 
 Run the focused diagnostic, HTTP request, recovery and provisioning tests with:
 

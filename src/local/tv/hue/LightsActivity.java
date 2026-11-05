@@ -1,6 +1,7 @@
 package local.tv.hue;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -36,6 +37,16 @@ public class LightsActivity extends Activity {
  private EditText hostInput;
  private TextView status;
  private String host,token,bridgeMac,clientKey;
+ private boolean showingLights;
+ private static final long BRIDGE_WAIT_MS=120000;
+ private int countdownGeneration;
+ private int discoveryGeneration;
+ private void stopCountdown(){countdownGeneration++;}
+ private void countdown(String key,long deadline,Runnable expired){
+  final int generation=++countdownGeneration;
+  Runnable tick=new Runnable(){public void run(){if(closing||generation!=countdownGeneration)return;long remaining=Math.max(0,(deadline-android.os.SystemClock.elapsedRealtime()+999)/1000);status.setText(String.format(getResources().getConfiguration().locale,SetupStrings.get(LightsActivity.this,key),remaining));if(remaining==0){stopCountdown();expired.run();}else panel.postDelayed(this,Math.min(1000,Math.max(1,deadline-android.os.SystemClock.elapsedRealtime())));}};
+  tick.run();
+ }
  private boolean busy,closing,resolving;
  private NsdManager nsd;
  private NsdManager.DiscoveryListener discovery;
@@ -44,9 +55,9 @@ public class LightsActivity extends Activity {
  @Override public void onCreate(Bundle state) {
   super.onCreate(state);Diagnostics.init(this);Diagnostics.event("lifecycle","lights.create",""); prefs=getSharedPreferences("hue_bridge",MODE_PRIVATE);
   connectionScreen();
-  if(!getSharedPreferences("native_setup_recovery",0).contains("snapshot")&&!prefs.getString("token","").isEmpty())load(false);
  }
  private void base(String title) {
+  stopCountdown();
   choices.clear(); positions.clear();brightness.clear();controls.clear();
   panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);
   panel.setPadding(72,32,72,40); panel.setBackgroundColor(Color.rgb(25,38,65));
@@ -65,6 +76,7 @@ public class LightsActivity extends Activity {
   panel.addView(b,lp);controls.add(b);b.setOnClickListener(v -> {if(!busy) action.run();});return b;
  }
  private void connectionScreen() {
+  persistDraft();showingLights=false;
   base(SetupStrings.get(this,"setup"));
   text(SetupStrings.get(this,"help"),18);
   if(getSharedPreferences("native_setup_recovery",0).contains("snapshot")){
@@ -75,10 +87,15 @@ public class LightsActivity extends Activity {
   hostInput.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
   hostInput.setText(prefs.getString("host",""));panel.addView(hostInput,new LinearLayout.LayoutParams(-1,110));
   button(Strings.get(this,"discover"),this::discover);
+  button(SetupStrings.get(this,"pair"),() -> load(true));
+  button(AppPairing.text(this,0),this::pairApp);
   button(Strings.get(this,"load"),() -> load(false));
-  button(Strings.get(this,"pair"),() -> load(true));
-  button(Strings.get(this,"back"),this::finish);
+  button(Strings.get(this,"back"),this::back);
   status.setText(Strings.get(this,"network_required"));
+ }
+ private void pairApp(){
+  if(busy)return;stopDiscovery();getSharedPreferences("tv_pair_flow",0).edit().putBoolean("requested",true).apply();
+  if(AppPairing.prepare(this,message->status.setText(message)))status.setText(SetupStrings.get(this,"pair_ready"));
  }
  private static String normalize(String s) {return s==null?"":s.replaceAll("[^a-fA-F0-9]", "").toLowerCase(Locale.ROOT);}
  private String tvMac() throws Exception {
@@ -128,13 +145,15 @@ public class LightsActivity extends Activity {
   worker.execute(() -> {
    String id=Diagnostics.id();diagnosticId.set(id);Diagnostics.event(id,"lights.task.begin","");Diagnostics.network(this,id);
    try {work.run();Diagnostics.event(id,"lights.task.ok","");}catch(Exception e){Diagnostics.error(id,"lights.task.error",e);ui(() -> status.setText(Strings.get(this,"operation_failed",id)));}
-   finally {Diagnostics.event(id,"lights.task.end","");diagnosticId.remove();ui(() -> {busy=false;for(Button b:controls)b.setEnabled(true);if(hostInput!=null)hostInput.setEnabled(true);});}
+   finally {Diagnostics.event(id,"lights.task.end","");diagnosticId.remove();ui(() -> {stopCountdown();busy=false;for(Button b:controls)b.setEnabled(true);if(hostInput!=null)hostInput.setEnabled(true);});}
   });
  }
  private void ui(Runnable r){runOnUiThread(() -> {if(!closing&&!isFinishing())r.run();});}
  private void load(boolean pair) {
   String candidate=hostInput.getText().toString().trim();
-  task(Strings.get(this,"connecting"),() -> {
+  stopDiscovery();final long deadline=android.os.SystemClock.elapsedRealtime()+BRIDGE_WAIT_MS;
+  status.setTextColor(pair?Color.rgb(255,217,92):Color.WHITE);status.setTypeface(null,pair?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL);
+  task(Strings.get(this,pair?"pair_press":"connecting"),() -> {
    String mac=checkBridge(candidate,"");
    prefs.edit().putString("host",candidate).apply();
    String key=prefs.getString("mac","").equals(mac)?prefs.getString("token",""):"";
@@ -142,11 +161,11 @@ public class LightsActivity extends Activity {
    if(!pair&&streamKey.isEmpty()&&mac.equals(tvMac())){try(NativeLink link=new NativeLink(this)){String existingUser=link.call(4),existingKey=link.call(7);if(existingUser!=null&&existingKey!=null&&!existingKey.isEmpty()){key=existingUser;streamKey=existingKey;}}}
    if(pair){
     JSONArray result=null;
-    long deadline=android.os.SystemClock.elapsedRealtime()+45000;
     while(result==null){
      if(closing)throw new IOException("Párování zrušeno.");
+     if(android.os.SystemClock.elapsedRealtime()>=deadline)throw new SocketTimeoutException("Bridge pairing deadline");
      try{result=(JSONArray)request(candidate,"/api",new JSONObject().put("devicetype","ambilight_hue#tv_setup").put("generateclientkey",true).toString());}
-     catch(HueError error){if(error.type!=101||android.os.SystemClock.elapsedRealtime()>=deadline)throw error;ui(()->status.setText(Strings.get(this,"pair_press")));Thread.sleep(1200);}
+     catch(HueError error){if(error.type!=101||android.os.SystemClock.elapsedRealtime()>=deadline)throw error;Thread.sleep(Math.min(1200,Math.max(1,deadline-android.os.SystemClock.elapsedRealtime())));}
     }
     key=result.getJSONObject(0).getJSONObject("success").getString("username");
     streamKey=result.getJSONObject(0).getJSONObject("success").getString("clientkey");
@@ -159,40 +178,52 @@ public class LightsActivity extends Activity {
    Collections.sort(ids);nativeRowsAtLoad=readSelection();nativeMacAtLoad=tvMac();Map<Integer,ContentValues> selected=mac.equals(nativeMacAtLoad)?nativeRowsAtLoad:new LinkedHashMap<>();
    prefs.edit().putString("host",candidate).putString("mac",mac).putString("token",key).putString("clientkey",streamKey).apply();
    host=candidate;token=key;bridgeMac=mac;clientKey=streamKey;
-   ui(() -> showLights(lamps,ids,selected));
+   if(pair){ui(()->{status.setTextColor(Color.WHITE);status.setTypeface(null,android.graphics.Typeface.NORMAL);new AlertDialog.Builder(this).setTitle(SetupStrings.get(this,"pair_success")).setMessage(SetupStrings.get(this,"pair_next")).setCancelable(false).setPositiveButton("OK",(d,w)->connectionScreen()).show();});return;}
+   selected=restoreDraft(mac,selected);
+   final Map<Integer,ContentValues> displayed=selected;
+   ui(() -> showLights(lamps,ids,displayed));
   });
+  if(pair)countdown("pair_wait",deadline,()->{});
  }
  private void showLights(JSONObject lamps,List<Integer> ids,Map<Integer,ContentValues> selected) {
   stopDiscovery();hostInput=null;initial=selected;
-  base(Strings.get(this,"select_title"));
+  base(Strings.get(this,"select_title"));showingLights=true;
   text(SetupStrings.get(this,"select"),18);
   for(int id:ids) {
    JSONObject lamp=lamps.optJSONObject(String.valueOf(id));
    CheckBox box=new CheckBox(this);box.setText(lamp.optString("name",Strings.get(this,"light",id))+"  (ID "+id+")");
    box.setTextColor(Color.WHITE);box.setTextSize(21);box.setPadding(20,8,20,8);box.setMinHeight(128);box.setButtonTintList(android.content.res.ColorStateList.valueOf(Color.rgb(90,220,240)));
-   box.setChecked(selected.containsKey(id));box.setFocusable(true);panel.addView(box,new LinearLayout.LayoutParams(-1,128));choices.put(id,box);
+   box.setChecked(selected.containsKey(id)&&(!selected.get(id).containsKey("DraftSelected")||selected.get(id).getAsInteger("DraftSelected")==1));box.setFocusable(true);panel.addView(box,new LinearLayout.LayoutParams(-1,128));choices.put(id,box);box.setOnCheckedChangeListener((b,checked)->persistDraft());
    ContentValues row=selected.get(id);
-   int angle=row==null?5:Math.max(1,Math.min(10,row.getAsInteger("Angle")));positions.put(id,angle);Button position=button(SetupStrings.get(this,"position")+": "+SetupStrings.positions(this)[angle-1],()->{});position.setOnClickListener(v->{if(!busy)PositionPicker.show(this,lamp.optString("name",Strings.get(this,"light",id)),positions.get(id),value->{positions.put(id,value);position.setText(SetupStrings.get(this,"position")+": "+SetupStrings.positions(this)[value-1]);});});
-   text(SetupStrings.get(this,"brightness"),17);Spinner bright=new Spinner(this);bright.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"1","2","3","4","5","6","7","8","9","10"}));bright.setSelection(row==null?5:Math.max(0,Math.min(9,row.getAsInteger("Brightness")-1)));panel.addView(bright,new LinearLayout.LayoutParams(-1,90));brightness.put(id,bright);
+   int angle=row==null?5:Math.max(1,Math.min(10,row.getAsInteger("Angle")));positions.put(id,angle);Button position=button(SetupStrings.get(this,"position")+": "+SetupStrings.positions(this)[angle-1],()->{});position.setOnClickListener(v->{if(!busy)PositionPicker.show(this,lamp.optString("name",Strings.get(this,"light",id)),positions.get(id),value->{positions.put(id,value);position.setText(SetupStrings.get(this,"position")+": "+SetupStrings.positions(this)[value-1]);persistDraft();});});
+   text(SetupStrings.get(this,"brightness"),17);Spinner bright=new Spinner(this);bright.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"1","2","3","4","5","6","7","8","9","10"}));bright.setSelection(row==null?5:Math.max(0,Math.min(9,row.getAsInteger("Brightness")-1)));panel.addView(bright,new LinearLayout.LayoutParams(-1,90));brightness.put(id,bright);bright.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> p,android.view.View v,int pos,long item){persistDraft();}public void onNothingSelected(AdapterView<?> p){}});
   }
   int hidden=0;for(int id:selected.keySet())if(!choices.containsKey(id))hidden++;
   status.setText(Strings.get(this,"compatible",ids.size())+(hidden>0?Strings.get(this,"hidden",hidden):""));
   if(ids.isEmpty())text(Strings.get(this,"no_lights"),18);
   Button save=button(SetupStrings.get(this,"save"),this::save);save.setEnabled(!ids.isEmpty());
-  button(Strings.get(this,"connection"),this::connectionScreen);button(Strings.get(this,"back"),this::finish);
+  button(Strings.get(this,"back"),this::back);
   if(!choices.isEmpty())choices.values().iterator().next().requestFocus();
  }
  private void save() {
-  Set<Integer> desired=new LinkedHashSet<>(initial.keySet());
+  persistDraft();
+  Set<Integer> desired=new LinkedHashSet<>();for(Map.Entry<Integer,ContentValues> e:initial.entrySet())if(!e.getValue().containsKey("DraftSelected")||e.getValue().getAsInteger("DraftSelected")==1)desired.add(e.getKey());
   for(Map.Entry<Integer,CheckBox> entry:choices.entrySet()){if(entry.getValue().isChecked())desired.add(entry.getKey());else desired.remove(entry.getKey());}
   if(desired.size()>10){status.setText(Strings.get(this,"too_many"));return;}
   if(desired.isEmpty()){status.setText(SetupStrings.get(this,"choose"));return;}
   if(clientKey==null||clientKey.isEmpty()){status.setText(SetupStrings.get(this,"pair_needed"));return;}
-  Map<Integer,ContentValues> rows=new LinkedHashMap<>();for(int id:desired){ContentValues row=initial.containsKey(id)?new ContentValues(initial.get(id)):new ContentValues();row.put("LampID",id);if(positions.containsKey(id)){row.put("Angle",positions.get(id));row.put("Brightness",brightness.get(id).getSelectedItemPosition()+1);}if(!row.containsKey("Placement"))row.put("Placement",1);row.put("ConfigureStatus",1);rows.put(id,row);}
-  writeConfiguration(rows);
+  Map<Integer,ContentValues> rows=new LinkedHashMap<>();for(int id:desired){ContentValues row=initial.containsKey(id)?new ContentValues(initial.get(id)):new ContentValues();row.remove("DraftSelected");row.put("LampID",id);if(positions.containsKey(id)){row.put("Angle",positions.get(id));row.put("Brightness",brightness.get(id).getSelectedItemPosition()+1);}if(!row.containsKey("Placement"))row.put("Placement",1);row.put("ConfigureStatus",1);rows.put(id,row);}
+  SharedPreferences api=getSharedPreferences(TvApiClient.PREFS,0);
+  if(api.getString("user","").isEmpty()||api.getString("password","").isEmpty()||api.getString("certificate","").isEmpty()){
+   if(!getSharedPreferences("tv_pair_flow",0).getBoolean("requested",false)||!PairingAccessibility.ready()){String message=SetupStrings.get(this,"app_pair_required");status.setText(message);new AlertDialog.Builder(this).setMessage(message).setPositiveButton("OK",null).show();return;}
+   busy=true;for(Button b:controls)b.setEnabled(false);status.setText(AppPairing.text(this,1));
+   AppPairing.start(this,message->{if(closing||isFinishing()||isDestroyed())return;status.setText(message);if(!message.equals(AppPairing.text(this,6))){busy=false;for(Button b:controls)b.setEnabled(true);}},()->{if(!closing&&!isFinishing()&&!isDestroyed())writeConfiguration(rows,true);});
+   return;
+  }
+  writeConfiguration(rows,false);
  }
  private void recover(){task(Strings.get(this,"saving"),()->{SharedPreferences recovery=getSharedPreferences("native_setup_recovery",0);JSONObject snapshot=new JSONObject(recovery.getString("snapshot",""));try(NativeLink link=new NativeLink(this)){new TvApiClient(this).setPower(false,()->NativeLink.notifyService(this,false));link.awaitFree();link.restore(snapshot);boolean on="On".equals(snapshot.getString("power"));new TvApiClient(this).setPower(on,()->NativeLink.notifyService(this,on));if(!recovery.edit().clear().commit())throw new IOException("Recovery marker");}ui(()->{connectionScreen();status.setText(SetupStrings.get(this,"restored"));});});}
- private void writeConfiguration(Map<Integer,ContentValues> rows){
+ private void writeConfiguration(Map<Integer,ContentValues> rows,boolean newlyPaired){
   for(CheckBox box:choices.values())box.setEnabled(false);
   task(Strings.get(this,"saving"),()->{
    SharedPreferences recovery=getSharedPreferences("native_setup_recovery",0);JSONObject snapshot=null;
@@ -211,7 +242,8 @@ public class LightsActivity extends Activity {
      api.setPower(true,()->NativeLink.notifyService(this,true));
      if(!recovery.edit().clear().commit())throw new IOException("Commit marker failed");
      initial=readSelection();nativeRowsAtLoad=initial;nativeMacAtLoad=bridgeMac;
-     Diagnostics.event(diagnosticId.get(),"setup.commit.ok","lamps="+rows.size());ui(()->status.setText(SetupStrings.get(this,"saved")));
+     getSharedPreferences("light_drafts",0).edit().remove(bridgeMac).commit();
+     Diagnostics.event(diagnosticId.get(),"setup.commit.ok","lamps="+rows.size());ui(()->{String message=(newlyPaired?AppPairing.text(this,4)+"\n":"")+SetupStrings.get(this,"saved");status.setText(message);new AlertDialog.Builder(this).setMessage(message).setPositiveButton("OK",null).show();});
     }catch(Exception e){
      Diagnostics.error(diagnosticId.get(),"setup.commit.failed",e);
      try{api.setPower(false,()->NativeLink.notifyService(this,false));link.awaitFree();link.restore(snapshot);boolean on="On".equals(snapshot.getString("power"));api.setPower(on,()->NativeLink.notifyService(this,on));if(!recovery.edit().clear().commit())throw new IOException("Rollback marker");String id=diagnosticId.get();ui(()->status.setText(SetupStrings.get(this,"failed_restored")+id));}
@@ -223,6 +255,7 @@ public class LightsActivity extends Activity {
  private void discover() {
   if(discovery!=null){status.setText(Strings.get(this,"search_running"));return;}
   discoveryId=Diagnostics.id();Diagnostics.event(discoveryId,"bridge.discovery.begin","");
+  final int searchGeneration=++discoveryGeneration;
   status.setText(Strings.get(this,"searching"));nsd=(NsdManager)getSystemService(NSD_SERVICE);
   discovery=new NsdManager.DiscoveryListener(){
    public void onDiscoveryStarted(String s){}
@@ -235,16 +268,26 @@ public class LightsActivity extends Activity {
     nsd.resolveService(s,new NsdManager.ResolveListener(){
      public void onResolveFailed(NsdServiceInfo i,int e){Diagnostics.event(discoveryId,"bridge.discovery.resolve.error","code="+e);resolving=false;}
      public void onServiceResolved(NsdServiceInfo i){
-      resolving=false;if(i.getHost()==null)return;String candidate=i.getHost().getHostAddress();
-      worker.execute(()->{try{checkBridge(candidate,"");ui(()->{if(hostInput!=null){hostInput.setText(candidate);status.setText(SetupStrings.get(LightsActivity.this,"found"));}stopDiscovery();});}catch(Exception ignored){Diagnostics.error(discoveryId,"bridge.discovery.candidate.error",ignored);}finally{diagnosticId.remove();}});
+      resolving=false;if(i.getHost()==null||searchGeneration!=discoveryGeneration||closing)return;String candidate=i.getHost().getHostAddress();
+      worker.execute(()->{try{checkBridge(candidate,"");ui(()->{if(searchGeneration!=discoveryGeneration||discovery==null)return;if(hostInput!=null){hostInput.setText(candidate);status.setText(SetupStrings.get(LightsActivity.this,"found"));}stopDiscovery();});}catch(Exception ignored){Diagnostics.error(discoveryId,"bridge.discovery.candidate.error",ignored);}finally{diagnosticId.remove();}});
      }
     });
    }
   };
-  try{nsd.discoverServices("_hue._tcp.",NsdManager.PROTOCOL_DNS_SD,discovery);}catch(RuntimeException e){Diagnostics.error(discoveryId,"bridge.discovery.error",e);stopDiscovery();status.setText(Strings.get(this,"search_unavailable"));}
-  panel.postDelayed(()->{if(discovery!=null){stopDiscovery();if(!busy)status.setText(Strings.get(this,"search_done"));}},12000);
+  try{nsd.discoverServices("_hue._tcp.",NsdManager.PROTOCOL_DNS_SD,discovery);countdown("discovery_wait",android.os.SystemClock.elapsedRealtime()+BRIDGE_WAIT_MS,()->{if(discovery!=null){stopDiscovery();if(!busy)status.setText(Strings.get(this,"search_done"));}});}catch(RuntimeException e){Diagnostics.error(discoveryId,"bridge.discovery.error",e);stopDiscovery();status.setText(Strings.get(this,"search_unavailable"));}
  }
- private void stopDiscovery(){if(discovery!=null){try{nsd.stopServiceDiscovery(discovery);}catch(RuntimeException ignored){Diagnostics.error(discoveryId,"bridge.discovery.stop.error",ignored);}discovery=null;}}
- @Override public void onBackPressed(){if(busy){status.setText(Strings.get(this,"wait"));return;}super.onBackPressed();}
+ private void stopDiscovery(){discoveryGeneration++;stopCountdown();if(discovery!=null){try{nsd.stopServiceDiscovery(discovery);}catch(RuntimeException ignored){Diagnostics.error(discoveryId,"bridge.discovery.stop.error",ignored);}discovery=null;}}
+ private String nativeSignature(){return nativeMacAtLoad+":"+String.valueOf(nativeRowsAtLoad);}
+ private void persistDraft(){
+  if(!showingLights||bridgeMac==null||initial==null)return;
+  try{JSONObject draft=new JSONObject().put("native",nativeSignature());JSONArray rows=new JSONArray();for(Map.Entry<Integer,CheckBox> e:choices.entrySet()){int id=e.getKey();if(!positions.containsKey(id)||!brightness.containsKey(id))continue;ContentValues original=initial.get(id);JSONObject row=new JSONObject().put("LampID",id).put("Angle",positions.get(id)).put("Brightness",brightness.get(id).getSelectedItemPosition()+1).put("Placement",original==null?1:original.getAsInteger("Placement")).put("ConfigureStatus",1).put("DraftSelected",e.getValue().isChecked()?1:0);rows.put(row);}draft.put("rows",rows);getSharedPreferences("light_drafts",0).edit().putString(bridgeMac,draft.toString()).apply();}catch(Exception e){Diagnostics.error("draft","draft.save.failed",e);}
+ }
+ private Map<Integer,ContentValues> restoreDraft(String mac,Map<Integer,ContentValues> saved){
+  try{String value=getSharedPreferences("light_drafts",0).getString(mac,"");if(value.isEmpty())return saved;JSONObject draft=new JSONObject(value);if(!nativeSignature().equals(draft.getString("native")))return saved;Map<Integer,ContentValues> restored=new LinkedHashMap<>(saved);JSONArray rows=draft.getJSONArray("rows");for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);ContentValues v=new ContentValues();for(String key:new String[]{"LampID","Angle","Brightness","Placement","ConfigureStatus","DraftSelected"})v.put(key,row.getInt(key));restored.put(row.getInt("LampID"),v);}return restored;}catch(Exception e){Diagnostics.error("draft","draft.load.failed",e);return saved;}
+ }
+ @Override protected void onPause(){persistDraft();super.onPause();}
+ @Override protected void onResume(){super.onResume();if(!showingLights&&!busy&&getSharedPreferences("tv_pair_flow",0).getBoolean("requested",false)&&PairingAccessibility.ready())status.setText(SetupStrings.get(this,"pair_ready"));}
+ private void back(){persistDraft();if(showingLights)connectionScreen();else finish();}
+ @Override public void onBackPressed(){if(busy){status.setText(Strings.get(this,"wait"));return;}back();}
  @Override protected void onDestroy(){closing=true;stopDiscovery();worker.shutdown();super.onDestroy();}
 }

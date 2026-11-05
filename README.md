@@ -2,14 +2,14 @@
 
 Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original Philips Hue service already included in the TV firmware.
 
-[Download version 1.11](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.11) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
+[Download version 1.12](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.12) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
 
 ![Ambilight + Hue artwork](artwork/ambilight-hue-approved.png)
 
 ## What it does
 
 - Turns synchronization on and off from a TV remote friendly launcher.
-- Pairs the launcher with the TV directly on the TV, without computer-side scripts or root. First enable the optional pairing helper in Accessibility settings.
+- Prepares TV API pairing through an explicitly enabled Accessibility helper, then completes pairing automatically when saving light configuration. No computer or root is needed.
 - Saves the native Hue On/Off setting through the paired JointSPACE API, then notifies the native Philips service.
 - Restores the previous light state when synchronization is turned off, using Philips' own restoration mechanism.
 - Pairs the Hue Bridge, selects up to ten color lights and sets their position and brightness directly in the app, without root or the native wizard.
@@ -25,7 +25,7 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | TV | Philips 65OLED909 |
 | Firmware | `TPM231WW_R.201.100.146.220` (build `3000428`) |
 | Kernel | `5.15.180-android14-11-00042-g766efc243647-dirty` |
-| Release | 1.11, Android versionCode 12 |
+| Release | 1.12, Android versionCode 13 |
 | Android package | `local.tv.hue` |
 | Native service | `org.droidtv.alhuewizard/org.droidtv.ambihue.HueService` |
 | TV API | HTTPS, port 1926, JointSPACE v6 |
@@ -43,7 +43,7 @@ The launcher follows the TV system language for Czech, English, German, French a
 | Turn off synchronization | Turn synchronization off and restore previous lighting |
 | Set up Bridge and bulbs | Pair Bridge, select lights, set positions and brightness, save and start |
 | Original Philips wizard | Open the optional native wizard |
-| App pairing | Authorize the launcher with the TV API using the on-screen PIN helper |
+| App pairing (inside setup) | Prepare Accessibility permission; TV authorization completes when saving lights |
 
 The success message confirms the saved native switch and service request. It does **not** independently confirm that lights are responding.
 
@@ -106,12 +106,12 @@ No personal TV/Hue credentials, private signing keys, raw device logs, extracted
 
 This is an unofficial personal compatibility project, not a Philips or Signify product. Philips, Ambilight and Hue names and associated marks belong to their respective owners. No open-source license has been selected for this publication; public availability alone is not a grant of reuse rights. The private signing key is not distributed.
 
-## Version 1.11: setup without the native wizard
+## Version 1.12: chronological setup on the TV
 
-Complete **App pairing**, then **Set up Bridge and bulbs**. Discover the Bridge or enter its IPv4 address, press its physical button and choose Pair. Select lights and configure positions/brightness, then choose **Save and start synchronization**. The original native wizard and Magisk repair are not needed for this setup path on the tested TV.
+Open **Set up Bridge and bulbs** and follow **Find bridge → Pair Hue Bridge → App pairing → Load compatible lights**. Grant the pairing helper's Accessibility permission, return, select lights and set their position/brightness, then choose **Save and start synchronization**. The app completes TV PIN pairing automatically at this final step if needed. The original wizard is optional. Discovery and Bridge-button waiting show 120-second countdowns; the button prompt is yellow and bold.
 
-A clean-state prototype was tested on the owner's OLED909 with native Bridge/lamp records cleared, both Hue flags reset and the root wizard repair disabled. The ordinary APK obtained fresh Bridge credentials, configured two lamps and started the original Philips service. The service set its own configuration flag; red and blue screen changes produced matching changes in both lights, confirmed visually and through Bridge reads. Root was used only to prepare/backup/reset the test and read resulting system flags. This does not establish compatibility with OLED808, different firmware or Hue Bridge Pro. The final 1.11 interface loaded existing native credentials, displayed positions/brightness, saved two lamps and started the native service on the TV; recovery from every possible partial failure has not been exhaustively verified.
+The graphical position selector mirrors the native ten-zone order using an original TV drawing. Remote arrows select, OK confirms and Back cancels. Private drafts preserve unfinished light selection, position and brightness between visits. Confirmed native saves and a private interrupted-save recovery mechanism are retained.
 
-Android 8 (API 26) or later is required. The Philips native service and its exported interfaces must exist. No private credentials, TV data archives or signing key are included.
+The owner successfully tested the complete clean setup and automatic TV pairing on the OLED909. Initial clean testing reset native Bridge/lamp records and both Hue settings with the root wizard repair disabled. An ordinary app obtained fresh Bridge credentials and the native service set its configuration flag. Red/blue screen changes produced matching changes in both lights, confirmed visually and through Bridge reads. Root was used only for test preparation, backup/reset and reading resulting system flags. Production setup does not require root. Recovery from every possible partial failure is not exhaustively verified.
 
-The position control shows a TV diagram with ten selectable locations, matching the native zone order. Remote arrows select a location; OK confirms and Back cancels. Labels and guidance follow the TV language.
+Android API 26 or newer and compatible original Philips components are required. OLED808, different firmware and Hue Bridge Pro remain unverified. No private credentials, device backups or signing key are distributed.

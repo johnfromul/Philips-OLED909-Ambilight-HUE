@@ -27,13 +27,18 @@ final class AppPairing {
   int i="cs".equals(l)?1:"de".equals(l)?2:"fr".equals(l)?3:"es".equals(l)?4:0;return words[i][key];
  }
  interface Result {void done(String message);}
- static void start(Activity a,Result result){
+ static boolean prepare(Activity a,Result result){
   if(!PairingAccessibility.ready()){
    String l=a.getResources().getConfiguration().locale.getLanguage();
-   String help="cs".equals(l)?"Povolte pomocníka Ambilight + Hue v Usnadnění přístupu a potom znovu zvolte Spárovat aplikaci. Čte pouze párovací PIN Philips při tomto kroku.":"de".equals(l)?"Aktivieren Sie Ambilight + Hue unter Bedienungshilfen und wählen Sie erneut App koppeln. Der Helfer liest nur während der Kopplung die Philips-PIN.":"fr".equals(l)?"Activez Ambilight + Hue dans Accessibilité, puis relancez l’association. Le service lit uniquement le PIN Philips pendant cette étape.":"es".equals(l)?"Active Ambilight + Hue en Accesibilidad y vuelva a vincular. El servicio solo lee el PIN Philips durante este paso.":"Enable Ambilight + Hue in Accessibility, then choose App pairing again. The helper reads only the Philips pairing PIN during this step.";
+   String help=SetupStrings.get(a,"pair_permission");
    result.done(help);
-   new AlertDialog.Builder(a).setTitle(text(a,0)).setMessage(help).setPositiveButton(text(a,3),(d,w)->{try{a.startActivity(new android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS));}catch(RuntimeException e){failure(a,result,e);}}).setNegativeButton(Strings.get(a,"cancel"),null).show();return;
+   new AlertDialog.Builder(a).setTitle(text(a,0)).setMessage(help).setPositiveButton(text(a,3),(d,w)->{try{a.startActivity(new android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS));}catch(RuntimeException e){failure(a,result,e);}}).setNegativeButton(Strings.get(a,"cancel"),null).show();return false;
   }
+  return true;
+ }
+ static void start(Activity a,Result result){start(a,result,null);}
+ static void start(Activity a,Result result,Runnable success){
+  if(!prepare(a,result))return;
   java.util.concurrent.CompletableFuture<String> pinResult=PairingAccessibility.arm();
   new Thread(()->{
    SharedPreferences pending=a.getSharedPreferences("tv_pair_pending",0);
@@ -72,7 +77,7 @@ final class AppPairing {
        SharedPreferences.Editor saved=a.getSharedPreferences(TvApiClient.PREFS,0).edit();
        for(String field:new String[]{"user","password","certificate"})saved.putString(field,pending.getString(field,""));
        if(!saved.putString("host","127.0.0.1").commit())throw new IOException();
-       a.runOnUiThread(()->result.done(text(a,4)));
+       a.runOnUiThread(()->{result.done(text(a,4));if(success!=null)success.run();});
    }catch(Exception e){failure(a,result,e);}finally{PairingAccessibility.disarm(pinResult);pending.edit().clear().commit();}
   },"HuePairRequest").start();
  }

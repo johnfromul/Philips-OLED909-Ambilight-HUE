@@ -49,3 +49,7 @@ The launcher reported the native switch enabled, but `HueIsActive` was false. Na
 An experimental `hue-acfg` tool printed successful writes but actually failed to connect to the settings IPC service under SELinux. Its output is not evidence of a successful settings write. Do not use that method. No SELinux or firmware changes were made.
 
 The original wizard did not reliably react to OK on selection checkboxes or Done. Direct database selection and the native position configuration were used. The exact action that originally exposed the native configuration menu was not established reliably; there is no verified universal command for bypassing its initial Done screen.
+
+## 1.12 pairing flow and wait UI
+
+The setup menu prepares an explicit TV pairing intent and Accessibility permission. If no TV API credentials exist, saving light configuration requests/verifies the local Philips PIN authorization before native writes. Existing credentials are retained otherwise. Discovery and Bridge-button pairing share a 120-second monotonic-time budget and a one-second countdown; callbacks from a superseded discovery are ignored. Draft lamp selection/positions/brightness are private and scoped to the Bridge and the native configuration baseline. No native secrets are added to diagnostics.
