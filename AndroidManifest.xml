@@ -1,8 +1,8 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="local.tv.hue" android:versionCode="11" android:versionName="1.10">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="local.tv.hue" android:versionCode="12" android:versionName="1.11">
  <uses-permission android:name="android.permission.INTERNET"/>
  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
- <queries><provider android:authorities="org.droidtv.ambihue.provider"/></queries>
- <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34"/>
+ <queries><provider android:authorities="org.droidtv.ambihue.provider"/><package android:name="org.droidtv.ambihuecommon"/><package android:name="org.droidtv.alhuewizard"/></queries>
+ <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34"/>
  <uses-feature android:name="android.software.leanback" android:required="true"/>
  <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
  <application android:label="Ambilight + Hue" android:icon="@drawable/hue_icon" android:banner="@drawable/hue_banner" android:allowBackup="false" android:usesCleartextTraffic="true" android:theme="@android:style/Theme.Material.NoActionBar">

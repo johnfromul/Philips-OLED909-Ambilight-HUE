@@ -1,5 +1,7 @@
 # Optional root-only native wizard repair
 
+Version 1.11 includes **Set up Bridge and bulbs**, which bypasses the original wizard without root on the tested OLED909. This module is only for users choosing to repair and use the original Philips wizard. It is not required for the new setup path.
+
 The optional **Hue-Wizard-Runtime-Fix-1.1-Magisk-EN.zip** repairs remote confirmation in the original Philips Hue wizard. It is separate from launcher APK 1.8. The launcher itself does not require root.
 
 ## Tested behavior

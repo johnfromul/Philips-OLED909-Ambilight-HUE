@@ -12,25 +12,19 @@ export TV_SERIAL="$TV_HOST:5555"  # Replace with its current ADB connection port
 adb pair "$TV_HOST:PAIRING_PORT"  # Only if wireless debugging requires pairing
 adb connect "$TV_SERIAL"
 adb devices -l
-adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.10.apk
+adb -s "$TV_SERIAL" install -r release/Ambilight-Hue-1.11.apk
 adb -s "$TV_SERIAL" shell am start -W -n local.tv.hue/.MainActivity
 ```
 
 `192.0.2.10` is a documentation placeholder. Use a trusted local network. Updating with `install -r` and the same signing certificate preserves launcher data. Uninstalling or clearing app data requires provisioning again.
 
-## Native Hue Bridge pairing
+## Hue Bridge setup in the app (1.11+)
 
-Open the native wizard from the launcher, or run:
-
-```sh
-adb -s "$TV_SERIAL" shell am start -W -n org.droidtv.alhuewizard/.ALHueWizardActivity
-```
-
-Follow the native pairing flow and press the physical Hue Bridge button when requested. The launcher preserves this original Philips pairing. TV API pairing below is a separate step.
+First complete **App pairing** below. Then open **Set up Bridge and bulbs**. This is a separate authorization: TV API pairing authorizes the launcher with the TV, while the Bridge button authorizes access to the Hue Bridge. The original wizard is optional; it is not required by the new setup path.
 
 ## Pair the TV API
 
-Starting with version 1.10, choose **App pairing** in the launcher. On first use, follow the prompt to enable **Ambilight + Hue pairing** in the TV's Accessibility settings, then return and choose App pairing again. The helper reads the PIN from the Philips system prompt and completes pairing while that prompt remains open. Do not close the TV's PIN prompt: closing it cancels authorization. No computer or root is required for this step. The launcher verifies API access before replacing existing credentials. If pairing fails or expires, choose App pairing again. This is separate from pairing the native wizard with the Hue Bridge.
+Starting with version 1.10, choose **App pairing** in the launcher. On first use, follow the prompt to enable **Ambilight + Hue pairing** in the TV's Accessibility settings, then return and choose App pairing again. The helper reads the PIN from the Philips system prompt and completes pairing while that prompt remains open. Do not close the TV's PIN prompt: closing it cancels authorization. No computer or root is required for this step. The launcher verifies API access before replacing existing credentials. If pairing fails or expires, choose App pairing again. This is separate from authorizing the Hue Bridge with its physical button.
 
 The accessibility helper listens only to selected Philips/system packages and reads the specifically named Ambilight Hue control PIN prompt only during a user-initiated pairing attempt. It does not click controls or log the PIN. You may disable the helper after successful pairing; normal synchronization does not need it. Tested on the owner's OLED909: native grant returned SUCCESS and authenticated HueLamp/power returned HTTP 200 on 4 November 2026.
 
@@ -79,14 +73,15 @@ For the optional root-only native wizard repair, see [WIZARD-RUNTIME.md](WIZARD-
 
 ## Select and configure lights
 
-1. Open **Add Hue lights to TV** (labels follow your TV language).
-2. Discover the bridge or enter its IPv4 address.
-3. On first use, press the bridge's physical button and choose **Pair**.
-4. Select up to ten compatible color lights and save.
-5. Open **Configure bulbs** and set their positions and brightness in the native wizard. If its confirmation does not work, TV API pairing alone will not fix it; see the separate root-only runtime repair notes.
-6. Turn on the TV's own Ambilight, then choose **Turn on synchronization**.
+1. Complete **App pairing** and enable the TV's own Ambilight.
+2. Open **Set up Bridge and bulbs**. Discover the Bridge or enter its IPv4 address. Where multiple Bridges exist, check the chosen IP before pairing. Discovery returns the first resolved reachable candidate; it is not a multi-Bridge chooser.
+3. Press the physical Bridge button and choose **Pair**. The app requests both a username and client key. Existing native credentials may be reused through **Load compatible lights** on the same Bridge. Older app-only credentials without a client key require pairing again.
+4. Select one to ten compatible color lights. For each light open the graphical TV position selector, use the remote arrows and OK to choose its location, then set brightness. Positions follow the native diagram: L1 at the lower left through L4 at the upper left, Top, R4 at the upper right through R1 at the lower right, Bottom. The selector uses an original drawing and preserves Philips angle IDs. For each light choose the native position (Left 1–4, Top, Right 4–1, Bottom) and brightness (1–10). Left/right are viewed facing the TV. Existing placement values are retained; new lights use the native default placement. Existing selected lights not offered in the compatible list are retained.
+5. Choose **Save and start synchronization**. This stops Hue temporarily, waits for Bridge release, saves the native Bridge credentials and lamp configuration, then enables Hue and explicitly starts the Philips service. Confirm the lights respond visually.
 
-Existing position and brightness configuration is retained for lights that remain selected. White ambiance lights are not offered.
+White ambiance lights are not offered. Positions and brightness are edited directly here; the optional **Original Philips wizard** control remains available. The app follows the TV language for CZ/EN/DE/FR/ES.
+
+Before native writes, the app saves a private recovery snapshot. A failed save attempts to restore the old native records, credentials and On/Off setting. If restoration cannot be confirmed or a save was interrupted, setup shows **Restore previous configuration** and blocks another setup until recovery completes. Keep the app's data until recovery succeeds: clearing/uninstalling the app removes this snapshot. This is not a full TV backup and cannot guarantee recovery after firmware changes or hardware/network failures. Native Philips methods can log Bridge credentials; do not publish raw native logs.
 
 ## Verify and troubleshoot
 

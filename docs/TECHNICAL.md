@@ -28,7 +28,7 @@ Native power corresponds to ITvSettingsManager ID 120 / ACFG 16385. The runtime 
 
 ## Light selection
 
-The launcher reads the TV's paired bridge identity, pairs its own local Hue API access using the physical bridge button, and offers `Color light` / `Extended color light` devices. It writes the chosen IDs to `content://org.droidtv.ambihue.provider/HueLampsInfo`, retaining existing position and brightness settings. Native bridge pairing and the native configuration wizard remain in use.
+The launcher reads the TV's paired bridge identity, pairs its own local Hue API access using the physical bridge button, and offers `Color light` / `Extended color light` devices. It writes the chosen IDs to `content://org.droidtv.ambihue.provider/HueLampsInfo`, retaining existing position and brightness settings. This describes the original picker. Since 1.11, the app also obtains a Bridge client key, passes credentials through the exported Philips LinkService Binder interface, configures positions/brightness and starts the native HueService directly. The original wizard is optional. A private recovery snapshot is kept until native setup commits; interrupted saves require recovery.
 
 ## Verified on October 21, 2026
 

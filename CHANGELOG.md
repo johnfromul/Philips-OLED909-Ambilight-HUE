@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11 — 2026-11-05
+
+- Added rootless Hue Bridge setup directly in the app: fresh username/client key, native service handoff, light positions and brightness.
+- Added a private recovery snapshot, rollback attempts and interrupted-save recovery.
+- Explicit native service startup completes the setup; no original wizard is needed on the tested OLED909.
+- Added CZ/EN/DE/FR/ES setup strings and retained the original wizard as an optional control.
+- Requires Android API 26 or newer.
+- Verified a clean-state prototype with red/blue light response; final APK saved two lamps and started the native service on the TV.
+
 ## 1.10 — November 4, 2026
 
 - Add TV-local App pairing with Czech, English, German, French and Spanish instructions.
@@ -51,3 +60,5 @@ Versions 1.3 and 1.4 established manual service control and the launcher interfa
 ## Documentation update — October 23, 2026
 
 Initial GitHub publication with English installation, build and technical notes. Documented the confirmed requirement that the TV's own Ambilight be On. The published APK remains the verified v1.5 binary.
+
+The position control shows a TV diagram with ten selectable locations, matching the native zone order. Remote arrows select a location; OK confirms and Back cancels. Labels and guidance follow the TV language.

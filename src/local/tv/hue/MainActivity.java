@@ -16,7 +16,7 @@ public class MainActivity extends Activity {
  private final java.util.concurrent.ExecutorService apiWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
  @Override public void onCreate(Bundle state) {
   super.onCreate(state);
-  Diagnostics.init(this);Diagnostics.event("lifecycle","create","version=1.10 sdk="+android.os.Build.VERSION.SDK_INT);
+  Diagnostics.init(this);Diagnostics.event("lifecycle","create","version=1.11 sdk="+android.os.Build.VERSION.SDK_INT);
   LinearLayout panel=new LinearLayout(this);
   panel.setOrientation(LinearLayout.VERTICAL);
   panel.setGravity(android.view.Gravity.CENTER);
@@ -33,7 +33,9 @@ public class MainActivity extends Activity {
   on.setOnClickListener(v -> sync(true));
   Button off=button(panel,Strings.get(this,"off"));
   off.setOnClickListener(v -> sync(false));
-  Button configure=button(panel,Strings.get(this,"configure"));
+  Button setup=button(panel,SetupStrings.get(this,"setup"));
+  setup.setOnClickListener(v -> startActivity(new Intent(this,LightsActivity.class)));
+  Button configure=button(panel,SetupStrings.get(this,"native_wizard"));
   configure.setOnClickListener(v -> {
    try {
     Diagnostics.event(Diagnostics.id(),"wizard.open","requested=true");
@@ -42,8 +44,6 @@ public class MainActivity extends Activity {
   });
   status=new TextView(this); status.setTextColor(Color.WHITE); status.setTextSize(16);
   status.setPadding(0,20,0,0); panel.addView(status);
-  Button lights=button(panel,Strings.get(this,"add"));
-  lights.setOnClickListener(v -> startActivity(new Intent(this,LightsActivity.class)));
   Button pairing=button(panel,AppPairing.text(this,0));
   pairing.setOnClickListener(v -> {
    if(busy)return;busy=true;for(Button b:buttons)b.setEnabled(false);status.setText(AppPairing.text(this,1));
@@ -75,6 +75,7 @@ public class MainActivity extends Activity {
   },seconds,java.util.concurrent.TimeUnit.SECONDS);
  }
  private void sync(boolean on) {
+  if(on&&getSharedPreferences("native_setup_recovery",0).contains("snapshot")){status.setText(SetupStrings.get(this,"recovery"));startActivity(new Intent(this,LightsActivity.class));return;}
   if(busy){Diagnostics.event("ui","request.ignored","busy=true");return;}
   final String id=Diagnostics.id();final long token=generation.incrementAndGet();
   final long began=android.os.SystemClock.elapsedRealtime();
