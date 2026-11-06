@@ -26,3 +26,5 @@ python3 -m unittest discover -s tests -v
 Your build will only update an installed app in place if it uses the same signing identity. The original private signing key is not published. Uninstalling to install a differently signed build removes launcher data and requires API provisioning again.
 
 The interface follows the TV language: Czech, English, German, French and Spanish, with English fallback.
+
+The development sources are now version 1.13, versionCode 14. The published stable release remains 1.12. The 1.13 TV test build preserves the same signing identity; reset logic has failure-injection tests, but a destructive reset has not been exercised on the owner’s restored live configuration.

@@ -20,7 +20,7 @@ adb -s "$TV_SERIAL" shell am start -W -n local.tv.hue/.MainActivity
 
 Open **Set up Bridge and bulbs**. Follow its buttons in this order:
 
-1. **Find bridge on network**. The screen shows a countdown of up to 120 seconds and stops when a reachable candidate is found. You can also enter its IPv4 address manually. With multiple Bridges, check the selected address; discovery is not a multi-Bridge chooser.
+1. **Find bridge on network**. In stable 1.12 the search stops at the first reachable candidate. In development 1.13 it collects candidates for up to 120 seconds; choose one from the dropdown showing name, IP and identifier. You can also enter its IPv4 address manually. With multiple Bridges, check the selected address; discovery is not a multi-Bridge chooser.
 2. **Pair Hue Bridge**. Press the physical Bridge button when the yellow, bold prompt appears. The app waits up to 120 seconds with a countdown and requests both a username and client key. A success dialog returns to the setup menu when you press OK.
 3. **App pairing**. Enable **Ambilight + Hue pairing** in the TV's Accessibility settings when prompted, then return. This step prepares authorization; you do not need to press App pairing again after granting permission. The actual TV pairing completes when you save the lights.
 4. **Load compatible lights**. Select one to ten color lights. Open each position control to use the graphical TV diagram. Use remote arrows and OK to confirm a position, or Back to cancel. L1 is at the lower left, L4 at the upper left, then Top, R4 through R1 on the right, and Bottom. This is viewed facing the TV. Set brightness from 1 to 10.
@@ -28,7 +28,7 @@ Open **Set up Bridge and bulbs**. Follow its buttons in this order:
 
 TV API pairing and Bridge pairing are separate authorizations. The short-lived Philips PIN prompt may flash briefly because the explicitly enabled helper reads it automatically. No manual PIN entry or computer is needed. The helper listens only to selected system packages and reads the specifically named pairing prompt during an active pairing attempt; it does not click controls or log the PIN. You may disable it after successful pairing. Normal synchronization does not require it.
 
-The native service receives both Bridge credentials and the configured lamp records. It sets its own configuration flag during startup; the app does not need direct access to the restricted Philips settings library. Root and the optional native wizard repair are not required for this path on the tested TV. The **Original Philips wizard** remains a separate optional control.
+The native service receives both Bridge credentials and the configured lamp records. It sets its own configuration flag during startup; the app does not need direct access to the restricted Philips settings library. Root and the optional native wizard repair are not required for this path on the tested TV. The **Original Philips wizard** is available under **Advanced options** in development version 1.13.
 
 ## Saved settings and drafts
 
@@ -60,3 +60,9 @@ python3 tools/provision_launcher.py --serial "$TV_SERIAL" --host "$TV_HOST"
 The TV displays a short-lived PIN. The pairing helper stores private state in ignored `tools/jointspace-private.json`; do not share it. `pair` refuses to replace existing state. After a wipe use `renew` deliberately to request fresh credentials, then grant, verify and provision again. Use `--replace-certificate` only after verifying an intended TV certificate change.
 
 The computer helper accepts the TV's self-signed certificate. The Android app pins its certificate fingerprint after initial local pairing and always uses 127.0.0.1:1926. The provisioner requires Android DUMP permission through ADB shell; ordinary apps cannot use it. Never publish provisioning payloads or private app data.
+
+## Advanced options in development 1.13
+
+The original Philips wizard is under Advanced options. Reset requires explicit confirmation. It clears this app’s native Hue configuration, keys, drafts and TV API credentials, while leaving authorizations on the Bridge intact. It is not a Bridge factory reset or a general TV reset. The native records are backed up before reset and verified after clearing; if a native write fails, restoration is attempted. An interrupted reset keeps recovery data, including the TV API credentials required for restoration. A reset of existing native setup requires working TV API authorization. Without TV API credentials, reset is permitted only when native Bridge and lamp records are already empty. The helper’s Accessibility permission is managed separately in TV settings.
+
+Indicators distinguish saved authorizations, Accessibility readiness, authenticated native On/Off and the native service’s active flag (when readable). None is a direct optical measurement. Public Bridge names may be cached. mDNS discovery is not evidence that a Bridge Pro supports the native TV protocol.

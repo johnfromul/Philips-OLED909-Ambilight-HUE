@@ -36,6 +36,11 @@ public class LightsActivity extends Activity {
  private LinearLayout panel;
  private EditText hostInput;
  private TextView status;
+ private TextView pairSummary;private Button bridgePairButton,appPairButton;
+ private Spinner bridgePicker;private ArrayAdapter<String> bridgeAdapter;
+ private final List<String> discoveredHosts=new ArrayList<>(),discoveredIds=new ArrayList<>();
+ private final ArrayDeque<NsdServiceInfo> resolveQueue=new ArrayDeque<>();
+ private String bridgeName="";
  private String host,token,bridgeMac,clientKey;
  private boolean showingLights;
  private static final long BRIDGE_WAIT_MS=120000;
@@ -86,16 +91,21 @@ public class LightsActivity extends Activity {
   hostInput.setTextSize(20);hostInput.setHint(Strings.get(this,"ip_hint"));hostInput.setHintTextColor(Color.LTGRAY);
   hostInput.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
   hostInput.setText(prefs.getString("host",""));panel.addView(hostInput,new LinearLayout.LayoutParams(-1,110));
+  discoveredHosts.clear();discoveredIds.clear();bridgePicker=new Spinner(this);bridgeAdapter=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new ArrayList<String>(Arrays.asList(FeatureStrings.get(this,"select_bridge"))));bridgePicker.setAdapter(bridgeAdapter);panel.addView(bridgePicker,new LinearLayout.LayoutParams(-1,96));
+  bridgePicker.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> p,android.view.View v,int position,long id){if(position>0&&position<=discoveredHosts.size()&&hostInput!=null)hostInput.setText(discoveredHosts.get(position-1));}public void onNothingSelected(AdapterView<?> p){}});
+  pairSummary=text("",17);
   button(Strings.get(this,"discover"),this::discover);
-  button(SetupStrings.get(this,"pair"),() -> load(true));
-  button(AppPairing.text(this,0),this::pairApp);
+  bridgePairButton=button(SetupStrings.get(this,"pair"),() -> load(true));
+  appPairButton=button(AppPairing.text(this,0),this::pairApp);
   button(Strings.get(this,"load"),() -> load(false));
   button(Strings.get(this,"back"),this::back);
   status.setText(Strings.get(this,"network_required"));
+  refreshPairStatus();
  }
+ private void refreshPairStatus(){if(showingLights||pairSummary==null)return;boolean bridge=!prefs.getString("token","").isEmpty()&&!prefs.getString("clientkey","").isEmpty(),app=UiStatus.paired(this);bridgePairButton.setText(UiColors.marks((bridge?"✓ ":"✕ ")+SetupStrings.get(this,"pair")));appPairButton.setText(UiColors.marks((app?"✓ ":"✕ ")+AppPairing.text(this,0)));pairSummary.setText(UiColors.summary(this,FeatureStrings.get(this,"bridge")+": "+prefs.getString("name",prefs.getString("configured_name",prefs.getString("mac",FeatureStrings.get(this,"not_ready"))))+" · "+prefs.getString("host","")+"\n"+SetupStrings.get(this,"pair")+": "+(bridge?"✓ "+FeatureStrings.get(this,"stored"):"✕ "+FeatureStrings.get(this,"not_ready"))+"\n"+FeatureStrings.get(this,"permission")+": "+(PairingAccessibility.ready()?"✓ "+FeatureStrings.get(this,"ready"):"✕ "+FeatureStrings.get(this,"not_ready"))+"\n"+AppPairing.text(this,0)+": "+(app?"✓ "+FeatureStrings.get(this,"stored"):"✕ "+FeatureStrings.get(this,"not_ready"))));}
  private void pairApp(){
   if(busy)return;stopDiscovery();getSharedPreferences("tv_pair_flow",0).edit().putBoolean("requested",true).apply();
-  if(AppPairing.prepare(this,message->status.setText(message)))status.setText(SetupStrings.get(this,"pair_ready"));
+  if(AppPairing.prepare(this,message->status.setText(message)))status.setText(SetupStrings.get(this,"pair_ready"));refreshPairStatus();
  }
  private static String normalize(String s) {return s==null?"":s.replaceAll("[^a-fA-F0-9]", "").toLowerCase(Locale.ROOT);}
  private String tvMac() throws Exception {
@@ -155,6 +165,7 @@ public class LightsActivity extends Activity {
   status.setTextColor(pair?Color.rgb(255,217,92):Color.WHITE);status.setTypeface(null,pair?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL);
   task(Strings.get(this,pair?"pair_press":"connecting"),() -> {
    String mac=checkBridge(candidate,"");
+   bridgeName=((JSONObject)request(candidate,"/api/config",null)).optString("name",mac);
    prefs.edit().putString("host",candidate).apply();
    String key=prefs.getString("mac","").equals(mac)?prefs.getString("token",""):"";
    String streamKey=prefs.getString("mac","").equals(mac)?prefs.getString("clientkey",""):"";
@@ -176,7 +187,7 @@ public class LightsActivity extends Activity {
    JSONObject lamps=(JSONObject)response;
    ArrayList<Integer> ids=new ArrayList<>();for(Iterator<String> it=lamps.keys();it.hasNext();){String id=it.next();JSONObject lamp=lamps.getJSONObject(id);String type=lamp.optString("type");if("Color light".equals(type)||"Extended color light".equals(type)){int n=Integer.parseInt(id);if(n>0)ids.add(n);}}
    Collections.sort(ids);nativeRowsAtLoad=readSelection();nativeMacAtLoad=tvMac();Map<Integer,ContentValues> selected=mac.equals(nativeMacAtLoad)?nativeRowsAtLoad:new LinkedHashMap<>();
-   prefs.edit().putString("host",candidate).putString("mac",mac).putString("token",key).putString("clientkey",streamKey).apply();
+   prefs.edit().putString("host",candidate).putString("mac",mac).putString("name",bridgeName).putString("token",key).putString("clientkey",streamKey).apply();
    host=candidate;token=key;bridgeMac=mac;clientKey=streamKey;
    if(pair){ui(()->{status.setTextColor(Color.WHITE);status.setTypeface(null,android.graphics.Typeface.NORMAL);new AlertDialog.Builder(this).setTitle(SetupStrings.get(this,"pair_success")).setMessage(SetupStrings.get(this,"pair_next")).setCancelable(false).setPositiveButton("OK",(d,w)->connectionScreen()).show();});return;}
    selected=restoreDraft(mac,selected);
@@ -222,7 +233,7 @@ public class LightsActivity extends Activity {
   }
   writeConfiguration(rows,false);
  }
- private void recover(){task(Strings.get(this,"saving"),()->{SharedPreferences recovery=getSharedPreferences("native_setup_recovery",0);JSONObject snapshot=new JSONObject(recovery.getString("snapshot",""));try(NativeLink link=new NativeLink(this)){new TvApiClient(this).setPower(false,()->NativeLink.notifyService(this,false));link.awaitFree();link.restore(snapshot);boolean on="On".equals(snapshot.getString("power"));new TvApiClient(this).setPower(on,()->NativeLink.notifyService(this,on));if(!recovery.edit().clear().commit())throw new IOException("Recovery marker");}ui(()->{connectionScreen();status.setText(SetupStrings.get(this,"restored"));});});}
+ private void recover(){task(Strings.get(this,"saving"),()->{SharedPreferences recovery=getSharedPreferences("native_setup_recovery",0);JSONObject snapshot=new JSONObject(recovery.getString("snapshot",""));if(snapshot.has("reset_tv_api")){JSONObject api=snapshot.getJSONObject("reset_tv_api");SharedPreferences.Editor restored=getSharedPreferences(TvApiClient.PREFS,0).edit();for(String field:new String[]{"user","password","certificate","host"})restored.putString(field,api.getString(field));if(!restored.commit())throw new IOException("TV API restoration failed");}try(NativeLink link=new NativeLink(this)){new TvApiClient(this).setPower(false,()->NativeLink.notifyService(this,false));link.awaitFree();link.restore(snapshot);boolean on="On".equals(snapshot.getString("power"));new TvApiClient(this).setPower(on,()->NativeLink.notifyService(this,on));if(!recovery.edit().clear().commit())throw new IOException("Recovery marker");}ui(()->{connectionScreen();status.setText(SetupStrings.get(this,"restored"));});});}
  private void writeConfiguration(Map<Integer,ContentValues> rows,boolean newlyPaired){
   for(CheckBox box:choices.values())box.setEnabled(false);
   task(Strings.get(this,"saving"),()->{
@@ -242,6 +253,7 @@ public class LightsActivity extends Activity {
      api.setPower(true,()->NativeLink.notifyService(this,true));
      if(!recovery.edit().clear().commit())throw new IOException("Commit marker failed");
      initial=readSelection();nativeRowsAtLoad=initial;nativeMacAtLoad=bridgeMac;
+     prefs.edit().putString("configured_name",bridgeName).putString("configured_mac",bridgeMac).putString("configured_host",host).commit();
      getSharedPreferences("light_drafts",0).edit().remove(bridgeMac).commit();
      Diagnostics.event(diagnosticId.get(),"setup.commit.ok","lamps="+rows.size());ui(()->{String message=(newlyPaired?AppPairing.text(this,4)+"\n":"")+SetupStrings.get(this,"saved");status.setText(message);new AlertDialog.Builder(this).setMessage(message).setPositiveButton("OK",null).show();});
     }catch(Exception e){
@@ -254,6 +266,7 @@ public class LightsActivity extends Activity {
  }
  private void discover() {
   if(discovery!=null){status.setText(Strings.get(this,"search_running"));return;}
+  discoveredHosts.clear();discoveredIds.clear();bridgeAdapter.clear();bridgeAdapter.add(FeatureStrings.get(this,"select_bridge"));
   discoveryId=Diagnostics.id();Diagnostics.event(discoveryId,"bridge.discovery.begin","");
   final int searchGeneration=++discoveryGeneration;
   status.setText(Strings.get(this,"searching"));nsd=(NsdManager)getSystemService(NSD_SERVICE);
@@ -264,19 +277,17 @@ public class LightsActivity extends Activity {
    public void onStartDiscoveryFailed(String s,int e){Diagnostics.event(discoveryId,"bridge.discovery.start.error","code="+e);ui(()->{stopDiscovery();status.setText(Strings.get(LightsActivity.this,"search_unavailable"));});}
    public void onStopDiscoveryFailed(String s,int e){Diagnostics.event(discoveryId,"bridge.discovery.stop.error","code="+e);}
    public void onServiceFound(NsdServiceInfo s){
-    if(resolving||closing)return;resolving=true;
-    nsd.resolveService(s,new NsdManager.ResolveListener(){
-     public void onResolveFailed(NsdServiceInfo i,int e){Diagnostics.event(discoveryId,"bridge.discovery.resolve.error","code="+e);resolving=false;}
-     public void onServiceResolved(NsdServiceInfo i){
-      resolving=false;if(i.getHost()==null||searchGeneration!=discoveryGeneration||closing)return;String candidate=i.getHost().getHostAddress();
-      worker.execute(()->{try{checkBridge(candidate,"");ui(()->{if(searchGeneration!=discoveryGeneration||discovery==null)return;if(hostInput!=null){hostInput.setText(candidate);status.setText(SetupStrings.get(LightsActivity.this,"found"));}stopDiscovery();});}catch(Exception ignored){Diagnostics.error(discoveryId,"bridge.discovery.candidate.error",ignored);}finally{diagnosticId.remove();}});
-     }
-    });
+    ui(()->{if(searchGeneration==discoveryGeneration){resolveQueue.add(s);resolveNext(searchGeneration);}});
    }
   };
   try{nsd.discoverServices("_hue._tcp.",NsdManager.PROTOCOL_DNS_SD,discovery);countdown("discovery_wait",android.os.SystemClock.elapsedRealtime()+BRIDGE_WAIT_MS,()->{if(discovery!=null){stopDiscovery();if(!busy)status.setText(Strings.get(this,"search_done"));}});}catch(RuntimeException e){Diagnostics.error(discoveryId,"bridge.discovery.error",e);stopDiscovery();status.setText(Strings.get(this,"search_unavailable"));}
  }
- private void stopDiscovery(){discoveryGeneration++;stopCountdown();if(discovery!=null){try{nsd.stopServiceDiscovery(discovery);}catch(RuntimeException ignored){Diagnostics.error(discoveryId,"bridge.discovery.stop.error",ignored);}discovery=null;}}
+ private void resolveNext(int generation){if(resolving||resolveQueue.isEmpty()||generation!=discoveryGeneration||discovery==null)return;resolving=true;NsdServiceInfo service=resolveQueue.remove();try{nsd.resolveService(service,new NsdManager.ResolveListener(){
+  public void onResolveFailed(NsdServiceInfo s,int code){ui(()->{if(generation!=discoveryGeneration)return;resolving=false;resolveNext(generation);});}
+  public void onServiceResolved(NsdServiceInfo s){ui(()->{if(generation!=discoveryGeneration)return;resolving=false;resolveNext(generation);if(s.getHost()==null)return;String ip=s.getHost().getHostAddress();String advertisedId=s.getServiceName();byte[] bridgeId=s.getAttributes().get("bridgeid");if(bridgeId!=null)advertisedId=new String(bridgeId,java.nio.charset.StandardCharsets.UTF_8);addDiscoveredBridge(generation,s.getServiceName(),ip,advertisedId);worker.execute(()->{try{JSONObject info=(JSONObject)request(ip,"/api/config",null);String mac=normalize(info.optString("mac"));if(mac.length()!=12)return;String name=info.optString("name",s.getServiceName());ui(()->addDiscoveredBridge(generation,name,ip,mac));}catch(Exception e){Diagnostics.error(discoveryId,"bridge.discovery.candidate.error",e);}});});}
+ });}catch(RuntimeException e){resolving=false;Diagnostics.error(discoveryId,"bridge.discovery.resolve.error",e);resolveNext(generation);}}
+ private void addDiscoveredBridge(int generation,String name,String ip,String id){if(generation!=discoveryGeneration||bridgeAdapter==null||hostInput==null)return;int index=discoveredIds.indexOf(id);if(index<0)index=discoveredHosts.indexOf(ip);String label=name+" · "+ip+" · "+id;if(index<0){discoveredIds.add(id);discoveredHosts.add(ip);bridgeAdapter.add(label);}else{discoveredIds.set(index,id);discoveredHosts.set(index,ip);String old=bridgeAdapter.getItem(index+1);if(!label.equals(old)){bridgeAdapter.remove(old);bridgeAdapter.insert(label,index+1);}}}
+ private void stopDiscovery(){discoveryGeneration++;resolveQueue.clear();resolving=false;stopCountdown();if(discovery!=null){try{nsd.stopServiceDiscovery(discovery);}catch(RuntimeException ignored){Diagnostics.error(discoveryId,"bridge.discovery.stop.error",ignored);}discovery=null;}}
  private String nativeSignature(){return nativeMacAtLoad+":"+String.valueOf(nativeRowsAtLoad);}
  private void persistDraft(){
   if(!showingLights||bridgeMac==null||initial==null)return;
@@ -286,7 +297,7 @@ public class LightsActivity extends Activity {
   try{String value=getSharedPreferences("light_drafts",0).getString(mac,"");if(value.isEmpty())return saved;JSONObject draft=new JSONObject(value);if(!nativeSignature().equals(draft.getString("native")))return saved;Map<Integer,ContentValues> restored=new LinkedHashMap<>(saved);JSONArray rows=draft.getJSONArray("rows");for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);ContentValues v=new ContentValues();for(String key:new String[]{"LampID","Angle","Brightness","Placement","ConfigureStatus","DraftSelected"})v.put(key,row.getInt(key));restored.put(row.getInt("LampID"),v);}return restored;}catch(Exception e){Diagnostics.error("draft","draft.load.failed",e);return saved;}
  }
  @Override protected void onPause(){persistDraft();super.onPause();}
- @Override protected void onResume(){super.onResume();if(!showingLights&&!busy&&getSharedPreferences("tv_pair_flow",0).getBoolean("requested",false)&&PairingAccessibility.ready())status.setText(SetupStrings.get(this,"pair_ready"));}
+ @Override protected void onResume(){super.onResume();refreshPairStatus();if(!showingLights&&!busy&&!UiStatus.paired(this)&&getSharedPreferences("tv_pair_flow",0).getBoolean("requested",false)&&PairingAccessibility.ready())status.setText(SetupStrings.get(this,"pair_ready"));}
  private void back(){persistDraft();if(showingLights)connectionScreen();else finish();}
  @Override public void onBackPressed(){if(busy){status.setText(Strings.get(this,"wait"));return;}back();}
  @Override protected void onDestroy(){closing=true;stopDiscovery();worker.shutdown();super.onDestroy();}

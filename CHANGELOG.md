@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.13 — development, 2026-11-06
+
+- Fixed PIN parsing for translated sentences with extra words after the app name; confirmed by the OLED808 tester.
+- Added queued multi-Bridge mDNS resolution and a name/IP/identifier selector, retaining manual address entry.
+- Added yellow Bridge identity, green pairing checks, red missing-authorization crosses and green On/red Off indicators.
+- Added saved Bridge/TV authorization and Accessibility indicators, authenticated On/Off checkmarks and a separate native service status where available.
+- Moved the original Philips wizard into Advanced options.
+- Added a confirmed native/app configuration reset with recovery data and failure tests; Bridge-side authorizations are explicitly retained.
+- Added authorization identity guidance, Android TV / Google TV-only branding and compatibility documentation. Titan OS and untested Bridge Pro support are excluded.
+- Recorded OLED808 standby restore/wake resume as tester-confirmed behavior, not a universal guarantee.
+
 ## 1.12 — 2026-11-05
 
 - Reordered setup: Find Bridge, Pair Hue Bridge, App pairing, Load compatible lights.

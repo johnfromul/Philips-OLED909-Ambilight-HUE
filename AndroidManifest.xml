@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="local.tv.hue" android:versionCode="13" android:versionName="1.12">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="local.tv.hue" android:versionCode="14" android:versionName="1.13">
  <uses-permission android:name="android.permission.INTERNET"/>
  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
  <queries><provider android:authorities="org.droidtv.ambihue.provider"/><package android:name="org.droidtv.ambihuecommon"/><package android:name="org.droidtv.alhuewizard"/></queries>

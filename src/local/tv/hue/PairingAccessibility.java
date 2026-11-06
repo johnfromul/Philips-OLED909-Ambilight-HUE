@@ -28,7 +28,7 @@ public final class PairingAccessibility extends AccessibilityService {
    capture(request,text);
   }finally{root.recycle();}
  }
- private void capture(CompletableFuture<String> request,CharSequence text){java.util.regex.Matcher match=java.util.regex.Pattern.compile("Ambilight Hue control\\s*:\\s*([0-9]{1,4})(?![0-9])").matcher(text);if(match.find())request.complete(match.group(1));}
+ private void capture(CompletableFuture<String> request,CharSequence text){String pin=PairingPin.extract(text);if(pin!=null)request.complete(pin);}
  private void collect(AccessibilityNodeInfo node,StringBuilder text,int depth){if(depth>25||text.length()>8192)return;if(node.getText()!=null)text.append(node.getText()).append('\n');for(int i=0;i<node.getChildCount();i++){AccessibilityNodeInfo child=node.getChild(i);if(child!=null){try{collect(child,text,depth+1);}finally{child.recycle();}}}}
  @Override public void onInterrupt(){}
  @Override public void onDestroy(){instance=null;handler.removeCallbacksAndMessages(null);synchronized(PairingAccessibility.class){if(pending!=null){pending.cancel(false);pending=null;}}super.onDestroy();}

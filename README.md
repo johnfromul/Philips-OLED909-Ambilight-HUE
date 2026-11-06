@@ -1,10 +1,14 @@
-# Philips OLED909 Ambilight + HUE
+# Philips TPM231WW Ambilight + Hue — Android TV / Google TV
 
-Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original Philips Hue service already included in the TV firmware.
+Ambilight + Hue setup and control for compatible **Philips TPM231WW TVs running Android TV / Google TV**, using the original Philips service included in the firmware. **Titan OS is not supported.** The platform name and model year alone do not establish compatibility.
 
-[Download version 1.12](https://github.com/johnfromul/Philips-OLED909-Ambilight-HUE/releases/tag/v1.12) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
+[Download version 1.12](https://github.com/johnfromul/Philips-TPM231WW-Ambilight-HUE-Android-TV/releases/tag/v1.12) · [Installation and pairing](docs/INSTALL.md) · [Technical notes](docs/TECHNICAL.md) · [Build from source](docs/BUILD.md)
 
 ![Ambilight + Hue artwork](artwork/ambilight-hue-approved.png)
+
+## Current development build: 1.13
+
+The latest published stable release remains 1.12. The 1.13 development build includes the multilingual PIN fix confirmed by the OLED808 tester, multi-Bridge selection, saved-status indicators, Advanced options and a confirmed local configuration reset. It is installed on the owner’s TV for evaluation; a 1.13 release has not yet been published.
 
 ## What it does
 
@@ -31,7 +35,7 @@ Manual Ambilight + Hue control for the **Philips 65OLED909**, using the original
 | TV API | HTTPS, port 1926, JointSPACE v6 |
 | Compatible lights | `Color light` and `Extended color light`, up to 10 |
 
-Other models and firmware versions have not been verified. White ambiance lights are intentionally excluded, matching the native application's color-light requirement. Two color lights were configured and tested.
+The OLED808 tester has additionally confirmed the rootless setup and synchronization on TPM231WW_R.201.100.228.212, including restore on standby and resume on wake. See [Compatibility](docs/COMPATIBILITY.md). Other models and firmware versions require verification. White ambiance lights are intentionally excluded, matching the native application's color-light requirement. Two color lights were configured and tested.
 
 ## App controls
 
@@ -42,7 +46,7 @@ The launcher follows the TV system language for Czech, English, German, French a
 | Turn on synchronization | Turn synchronization on |
 | Turn off synchronization | Turn synchronization off and restore previous lighting |
 | Set up Bridge and bulbs | Pair Bridge, select lights, set positions and brightness, save and start |
-| Original Philips wizard | Open the optional native wizard |
+| Advanced options | Original Philips wizard, confirmed settings reset and authorization identity information |
 | App pairing (inside setup) | Prepare Accessibility permission; TV authorization completes when saving lights |
 
 The success message confirms the saved native switch and service request. It does **not** independently confirm that lights are responding.
@@ -115,3 +119,11 @@ The graphical position selector mirrors the native ten-zone order using an origi
 The owner successfully tested the complete clean setup and automatic TV pairing on the OLED909. Initial clean testing reset native Bridge/lamp records and both Hue settings with the root wizard repair disabled. An ordinary app obtained fresh Bridge credentials and the native service set its configuration flag. Red/blue screen changes produced matching changes in both lights, confirmed visually and through Bridge reads. Root was used only for test preparation, backup/reset and reading resulting system flags. Production setup does not require root. Recovery from every possible partial failure is not exhaustively verified.
 
 Android API 26 or newer and compatible original Philips components are required. OLED808, different firmware and Hue Bridge Pro remain unverified. No private credentials, device backups or signing key are distributed.
+
+## Development 1.13 controls
+
+- Discovery collects Bridges for up to 120 seconds. Choose a Bridge by advertised/configured name, IP and identifier in the dropdown, or enter an address manually. mDNS-only candidates can be listed even when their local API is not yet verified; listing a Bridge Pro does not establish pairing or synchronization support.
+- Bridge identity is yellow; pairing checkmarks are green and missing authorizations have a red cross. The verified native On state is green, Off red, and unknown states remain neutral. Main-screen checkmarks reflect the authenticated native On/Off switch. Separate status text shows saved TV authorization, configured Bridge identity and the native service indicator where readable. The service indicator may be unavailable to ordinary apps; unverified is shown instead of assuming activity. Optical synchronization still requires visual confirmation.
+- Setup separately indicates stored Bridge authorization, Accessibility helper readiness and stored TV API authorization. These saved indicators do not guarantee current network reachability.
+- Advanced options contains the original Philips wizard, a reset confirmation, and information about the local authorization name ambilight_hue#tv_setup. The cloud account label alone cannot establish which authorization is safe to remove.
+- Reset clears native Bridge credentials/records, lamp configuration, drafts and this app’s TV API credentials after stopping synchronization. Existing authorizations on the Bridge remain. It does not factory-reset the Bridge, revoke unrelated credentials or reset other TV features. The Accessibility helper can be disabled separately. A native configuration reset requires working TV API authorization; an already-empty native setup can clear its local drafts without it.

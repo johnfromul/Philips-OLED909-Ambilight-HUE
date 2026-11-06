@@ -19,6 +19,7 @@ public class LanguageHarness {
   android.content.Context c=new android.content.Context();
   String[] languages={"cs","en","de","fr","es"};
   for(String language:languages){java.util.Locale.setDefault(java.util.Locale.forLanguageTag(language));
+   for(String key:FeatureStrings.TEXT.keySet())if(FeatureStrings.get(c,key)==null||FeatureStrings.get(c,key).isEmpty())throw new AssertionError(language+key);
    for(String key:SetupStrings.TEXT.keySet())if(SetupStrings.get(c,key)==null||SetupStrings.get(c,key).isEmpty())throw new AssertionError(language+key);
    if(SetupStrings.positions(c).length!=10)throw new AssertionError("native angle count");
   }
@@ -36,5 +37,6 @@ public class LanguageHarness {
    for name, text in sources.items():
     p=d/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text)
    shutil.copy(ROOT/'src/local/tv/hue/SetupStrings.java', d/'local/tv/hue/SetupStrings.java')
+   shutil.copy(ROOT/'src/local/tv/hue/FeatureStrings.java', d/'local/tv/hue/FeatureStrings.java')
    subprocess.run(['javac','-d',str(d/'classes'),*map(str,d.rglob('*.java'))],check=True,capture_output=True)
    subprocess.run(['java','-cp',str(d/'classes'),'local.tv.hue.LanguageHarness'],check=True,capture_output=True)
